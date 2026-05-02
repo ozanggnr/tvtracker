@@ -1,36 +1,113 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Holocron Tracker
 
-## Getting Started
+A full-stack personal media tracker with a Star Wars-inspired dark space theme.
 
-First, run the development server:
+## Tech Stack
+- **Next.js 15** (App Router, TypeScript)
+- **Tailwind CSS**
+- **PostgreSQL** (hosted on Railway)
+- **Prisma ORM**
+- **NextAuth v5** (credentials provider, JWT sessions)
 
+## Features
+- 🎬 Track Movies (via TMDB)
+- 📺 Track TV Series (via TMDB)
+- 📚 Track Books (via Google Books + Open Library fallback)
+- ⭐ Rate, review, and track progress
+- 🔍 Real-time debounced search with rich detail modals
+- 🔒 Private per-user archive
+
+## Setup
+
+### 1. Install dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Configure environment variables
+Copy `.env.example` to `.env` and fill in your values:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cp .env.example .env
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Required:
+- `DATABASE_URL` — PostgreSQL connection string
+- `NEXTAUTH_SECRET` — generate with `openssl rand -base64 32`
 
-## Learn More
+Optional (for full API features):
+- `TMDB_API_KEY` — TMDB Read Access Token (Bearer JWT)
+- `TMDB_V3_KEY` — TMDB v3 API key
+- `GOOGLE_BOOKS_API_KEY` — Google Books API key
 
-To learn more about Next.js, take a look at the following resources:
+### 3. Initialize the database
+```bash
+npx prisma migrate dev --name init
+npx prisma generate
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 4. Run dev server
+```bash
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Open [http://localhost:3000](http://localhost:3000)
 
-## Deploy on Vercel
+## Railway Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Environment Variables to set in Railway:
+```
+DATABASE_URL=<your-railway-postgres-url>
+NEXTAUTH_SECRET=<generate-a-strong-secret>
+NEXTAUTH_URL=<your-railway-app-url>
+TMDB_API_KEY=<your-tmdb-read-access-token>
+TMDB_V3_KEY=<your-tmdb-v3-api-key>
+GOOGLE_BOOKS_API_KEY=<optional>
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Deploy commands (Railway will auto-detect):
+- Build: `npm run build`
+- Start: `npm start`
+- Or set custom start: `npx prisma migrate deploy && npm start`
+
+## Project Structure
+```
+src/
+├── app/
+│   ├── (app)/          # Authenticated pages (behind middleware)
+│   │   ├── dashboard/
+│   │   ├── movies/
+│   │   ├── series/
+│   │   ├── books/
+│   │   ├── search/
+│   │   └── profile/
+│   ├── api/
+│   │   ├── auth/
+│   │   ├── items/
+│   │   ├── dashboard/
+│   │   ├── profile/
+│   │   ├── search/     # TMDB + Google Books
+│   │   └── detail/     # Full metadata fetch
+│   ├── login/
+│   ├── signup/
+│   └── page.tsx        # Landing page
+├── components/
+│   ├── sidebar.tsx
+│   ├── item-card.tsx
+│   ├── detail-modal.tsx
+│   ├── edit-item-modal.tsx
+│   ├── search-result-card.tsx
+│   ├── star-rating.tsx
+│   ├── tracker-page.tsx
+│   └── starfield.tsx
+├── lib/
+│   ├── auth.ts
+│   ├── prisma.ts
+│   ├── utils.ts
+│   └── validations.ts
+├── middleware.ts
+└── types/
+    └── index.ts
+prisma/
+└── schema.prisma
+```

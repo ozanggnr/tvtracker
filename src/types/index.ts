@@ -33,6 +33,12 @@ export interface SearchResult {
   externalId?: string;
   author?: string;
   director?: string;
+  genre?: string;
+  language?: string;
+  rating?: number;
+  voteCount?: number;
+  totalPages?: number;
+  totalEpisodes?: number;
 }
 
 export type SortOrder = "asc" | "desc";
