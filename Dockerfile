@@ -38,6 +38,7 @@ RUN chown nextjs:nodejs .next
 
 # Copy Prisma schema and migrations for deploy script
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/package.json ./package.json
 
 # Copy standalone output
@@ -46,7 +47,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # Install production dependencies for Prisma
-RUN npm install prisma @prisma/client @prisma/adapter-pg pg
+RUN npm install prisma @prisma/client @prisma/adapter-pg pg dotenv
 
 USER nextjs
 
