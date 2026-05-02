@@ -12,7 +12,7 @@ interface SearchResultCardProps {
 }
 
 const PLACEHOLDER = (title: string) =>
-  `https://placehold.co/300x450/070d1a/f5c518?text=${encodeURIComponent(title.slice(0, 10))}`;
+  `https://placehold.co/300x450/070d1a/f5c518.png?text=${encodeURIComponent(title.slice(0, 10))}`;
 
 const DEFAULT_STATUS: Record<ItemType, string> = {
   MOVIE: "PLAN_TO_WATCH",
@@ -47,9 +47,12 @@ export function SearchResultCard({ result, isTracked, onAdd }: SearchResultCardP
       if (res.ok) {
         setAdded(true);
         onAdd();
+      } else {
+        const errorData = await res.json();
+        alert(`Failed to add: ${errorData.error || "Unknown error"}`);
       }
-    } catch {
-      // silent fail
+    } catch (err: any) {
+      alert(`Network error: ${err.message}`);
     } finally {
       setAdding(false);
     }

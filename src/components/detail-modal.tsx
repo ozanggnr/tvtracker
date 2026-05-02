@@ -248,7 +248,7 @@ export function DetailModal({ externalId, previewData, onClose, onAdded }: Detai
                 <div className="relative w-28 h-40 rounded-xl overflow-hidden shrink-0 shadow-2xl"
                   style={{ border: `1px solid ${accentColor}30`, boxShadow: `0 0 20px ${accentColor}15` }}>
                   <Image
-                    src={detail.posterUrl || `https://placehold.co/300x450/070d1a/f5c518?text=${encodeURIComponent(detail.title.slice(0, 10))}`}
+                    src={detail.posterUrl || `https://placehold.co/300x450/070d1a/f5c518.png?text=${encodeURIComponent(detail.title.slice(0, 10))}`}
                     alt={detail.title}
                     fill
                     className="object-cover"

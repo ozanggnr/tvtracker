@@ -23,7 +23,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const PLACEHOLDER_POSTER = (title: string) =>
-  `https://placehold.co/300x450/070d1a/f5c518?text=${encodeURIComponent(title.slice(0, 12))}`;
+  `https://placehold.co/300x450/070d1a/f5c518.png?text=${encodeURIComponent(title.slice(0, 12))}`;
 
 export function ItemCard({ item, onUpdate }: ItemCardProps) {
   const [editing, setEditing] = useState(false);

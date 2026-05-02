@@ -30,7 +30,7 @@ const TYPE_TABS = [
 type MediaType = "MOVIE" | "TV_SERIES" | "BOOK";
 
 const PLACEHOLDER = (title: string) =>
-  `https://placehold.co/300x450/070d1a/f5c518?text=${encodeURIComponent(title.slice(0, 12))}`;
+  `https://placehold.co/300x450/070d1a/f5c518.png?text=${encodeURIComponent(title.slice(0, 12))}`;
 
 function SearchContent() {
   const searchParams = useSearchParams();
