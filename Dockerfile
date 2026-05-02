@@ -57,4 +57,4 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Run Prisma migrations then start the server
-CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]
+CMD ["sh", "-c", "DATABASE_URL=$DATABASE_URL npx prisma migrate deploy && node server.js"]
