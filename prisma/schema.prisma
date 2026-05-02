@@ -95,6 +95,8 @@ model TrackedItem {
   rating      Float?
   notes       String?    @db.Text
   progress    Int?       @default(0)
+  currentSeason Int?     @default(1)
+  currentEpisode Int?    @default(0)
   totalEpisodes Int?
   totalPages  Int?
   genre       String?

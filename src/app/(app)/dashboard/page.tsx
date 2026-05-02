@@ -18,6 +18,8 @@ interface DashboardData {
     avgRating: number | null;
   };
   recentItems: TrackedItem[];
+  continueWatching: TrackedItem[];
+  startWatching: TrackedItem[];
 }
 
 const STAT_CARDS = [
@@ -80,16 +82,35 @@ const STAT_CARDS = [
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [advancingId, setAdvancingId] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchDashboard = () => {
     fetch("/api/dashboard")
       .then((r) => r.json())
       .then((d) => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchDashboard();
   }, []);
 
+  const handleAdvance = async (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    if (advancingId) return;
+    setAdvancingId(id);
+    try {
+      const res = await fetch(`/api/items/${id}/advance`, { method: "POST" });
+      if (res.ok) {
+        fetchDashboard(); // reload to get new episode numbers
+      }
+    } finally {
+      setAdvancingId(null);
+    }
+  };
+
   const PLACEHOLDER = (title: string) =>
-    `https://placehold.co/200x300/070d1a/f5c518?text=${encodeURIComponent(title.slice(0, 10))}`;
+    `https://placehold.co/200x300/070d1a/f5c518.png?text=${encodeURIComponent(title.slice(0, 10))}`;
 
   if (loading) {
     return (
@@ -191,34 +212,136 @@ export default function DashboardPage() {
         })}
       </div>
 
-      {/* Recent Activity */}
-      <div>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-yellow-400" />
-            <h2
-              className="text-base font-bold"
-              style={{ fontFamily: "'Orbitron', sans-serif", color: "var(--text-primary)", letterSpacing: "0.05em" }}
-            >
-              RECENT ACTIVITY
+      {/* Continue Watching */}
+      {data?.continueWatching && data.continueWatching.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="text-lg font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: "var(--text-primary)" }}>
+              Continue Watching
             </h2>
+            <span className="text-lg">&gt;</span>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/movies" className="btn-secondary" style={{ padding: "0.4rem 0.875rem", fontSize: "0.7rem" }}>Movies</Link>
-            <Link href="/series" className="btn-secondary" style={{ padding: "0.4rem 0.875rem", fontSize: "0.7rem" }}>Series</Link>
-            <Link href="/books" className="btn-secondary" style={{ padding: "0.4rem 0.875rem", fontSize: "0.7rem" }}>Books</Link>
+          
+          <div className="flex overflow-x-auto pb-4 gap-4 scrollbar-hide" style={{ scrollSnapType: "x mandatory" }}>
+            {data.continueWatching.map((item) => (
+              <div key={item.id} className="relative shrink-0 w-[280px] sm:w-[320px] group cursor-pointer" style={{ scrollSnapAlign: "start" }}>
+                <Link href={`/item/${item.id}`} className="block relative aspect-video rounded-xl overflow-hidden mb-2" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
+                  <Image
+                    src={item.posterUrl || PLACEHOLDER(item.title)}
+                    alt={item.title}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    sizes="320px"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.9)] via-transparent to-transparent" />
+                  
+                  {/* Progress bar overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-[rgba(255,255,255,0.2)]">
+                    <div 
+                      className="h-full bg-[var(--gold)]" 
+                      style={{ width: `${Math.min(100, Math.max(5, ((item.currentEpisode || 1) / Math.max(item.totalEpisodes || 10, 1)) * 100))}%` }} 
+                    />
+                  </div>
+
+                  <div className="absolute bottom-3 right-3 flex items-center gap-1 text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-[rgba(0,0,0,0.6)] border border-[rgba(255,255,255,0.2)]">
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                    Episode
+                  </div>
+                </Link>
+
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-bold text-sm truncate w-[220px]" style={{ fontFamily: "'Rajdhani', sans-serif", color: "var(--text-primary)" }}>
+                      {item.title}
+                    </h3>
+                    <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                      S{item.currentSeason || 1} • E{item.currentEpisode || 1}
+                    </p>
+                  </div>
+                  <button 
+                    onClick={(e) => handleAdvance(item.id, e)}
+                    disabled={advancingId === item.id}
+                    className="p-2 rounded-full hover:bg-[rgba(255,255,255,0.1)] transition-colors"
+                  >
+                    {advancingId === item.id ? (
+                      <div className="w-4 h-4 rounded-full border-2 border-t-transparent border-[var(--gold)] animate-spin" />
+                    ) : (
+                      <CheckCircle className="w-5 h-5 text-[var(--gold)] opacity-70 hover:opacity-100" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
+        </div>
+      )}
+
+      {/* Start Watching */}
+      {data?.startWatching && data.startWatching.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="text-lg font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: "var(--text-primary)" }}>
+              Start Watching
+            </h2>
+            <span className="text-lg">&gt;</span>
+          </div>
+          
+          <div className="flex overflow-x-auto pb-4 gap-4 scrollbar-hide" style={{ scrollSnapType: "x mandatory" }}>
+            {data.startWatching.map((item) => (
+              <div key={item.id} className="relative shrink-0 w-[140px] sm:w-[160px] group cursor-pointer" style={{ scrollSnapAlign: "start" }}>
+                <Link href={`/item/${item.id}`} className="block relative aspect-[2/3] rounded-xl overflow-hidden mb-2" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
+                  <Image
+                    src={item.posterUrl || PLACEHOLDER(item.title)}
+                    alt={item.title}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    sizes="160px"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.9)] via-transparent to-transparent" />
+                </Link>
+
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-bold text-sm truncate w-[110px]" style={{ fontFamily: "'Rajdhani', sans-serif", color: "var(--text-primary)" }}>
+                      {item.title}
+                    </h3>
+                    <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                      S1 • E1
+                    </p>
+                  </div>
+                  <button 
+                    onClick={(e) => handleAdvance(item.id, e)}
+                    disabled={advancingId === item.id}
+                    className="p-1.5 rounded-full hover:bg-[rgba(255,255,255,0.1)] transition-colors"
+                  >
+                    {advancingId === item.id ? (
+                      <div className="w-4 h-4 rounded-full border-2 border-t-transparent border-[var(--gold)] animate-spin" />
+                    ) : (
+                      <CheckCircle className="w-4 h-4 text-[var(--gold)] opacity-70 hover:opacity-100" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* History */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-lg font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: "var(--text-primary)" }}>
+            History
+          </h2>
+          <span className="text-lg">&gt;</span>
         </div>
 
         {!data?.recentItems?.length ? (
           <div className="empty-state holo-card">
             <div className="empty-state-icon">🔭</div>
             <h3 style={{ color: "var(--text-primary)", fontFamily: "'Orbitron', sans-serif", fontSize: "0.9rem" }}>
-              YOUR ARCHIVE IS EMPTY
+              YOUR HISTORY IS EMPTY
             </h3>
-            <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-              Start tracking movies, series, and books
-            </p>
             <div className="flex gap-3 mt-2">
               <Link href="/search" className="btn-primary" style={{ fontSize: "0.8rem", padding: "0.625rem 1.25rem" }}>
                 Search & Add
@@ -226,82 +349,48 @@ export default function DashboardPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {data.recentItems.map((item, i) => (
-              <div
+          <div className="flex overflow-x-auto pb-4 gap-4 scrollbar-hide" style={{ scrollSnapType: "x mandatory" }}>
+            {data.recentItems.map((item) => (
+              <Link
                 key={item.id}
-                className="poster-card animate-fade-in-up"
-                style={{ animationDelay: `${i * 0.06}s` }}
+                href={`/item/${item.id}`}
+                className="relative shrink-0 w-[240px] group cursor-pointer block" 
+                style={{ scrollSnapAlign: "start" }}
               >
-                <div className="relative aspect-[2/3] overflow-hidden bg-[rgba(7,13,26,0.8)]">
+                <div className="relative aspect-video rounded-xl overflow-hidden mb-2" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
                   <Image
                     src={item.posterUrl || PLACEHOLDER(item.title)}
                     alt={item.title}
                     fill
-                    className="object-cover"
-                    sizes="150px"
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    sizes="240px"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[rgba(2,4,8,0.9)] via-transparent to-transparent" />
-                  {item.rating && (
-                    <div
-                      className="absolute top-2 right-2 text-[0.65rem] font-bold px-1.5 py-0.5 rounded"
-                      style={{ background: "rgba(245,197,24,0.2)", border: "1px solid rgba(245,197,24,0.4)", color: "var(--gold)", fontFamily: "'Orbitron', sans-serif" }}
-                    >
-                      ★{item.rating.toFixed(1)}
-                    </div>
-                  )}
-                  <div className="absolute bottom-0 left-0 right-0 p-2">
-                    <p
-                      className="text-xs font-semibold truncate"
-                      style={{ color: "var(--text-primary)", fontFamily: "'Rajdhani', sans-serif" }}
-                    >
-                      {item.title}
-                    </p>
-                    <p
-                      className={`text-[0.65rem] mt-0.5 ${getStatusColor(item.status)}`}
-                      style={{ fontFamily: "'Rajdhani', sans-serif" }}
-                    >
-                      {getStatusLabel(item.status)}
-                    </p>
+                  <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.8)] via-transparent to-transparent" />
+                  <div className="absolute bottom-2 left-2 text-[0.65rem] font-bold px-1.5 py-0.5 rounded bg-[rgba(255,255,255,0.9)] text-black">
+                    Today
                   </div>
                 </div>
-              </div>
+                <h3 className="font-bold text-sm truncate" style={{ fontFamily: "'Rajdhani', sans-serif", color: "var(--text-primary)" }}>
+                  {item.title}
+                </h3>
+                <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                  {item.itemType === "TV_SERIES" ? `S${item.currentSeason || 1} • E${item.currentEpisode || 1}` : "Watched"}
+                </p>
+              </Link>
             ))}
           </div>
         )}
       </div>
 
-      {/* Quick Add Section */}
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[
-          { label: "Add Movie", href: "/search?type=MOVIE", icon: Film, color: "var(--gold)" },
-          { label: "Add Series", href: "/search?type=TV_SERIES", icon: Tv2, color: "var(--hologram-teal)" },
-          { label: "Add Book", href: "/search?type=BOOK", icon: BookOpen, color: "#a040ff" },
-        ].map((action) => {
-          const Icon = action.icon;
-          return (
-            <Link
-              key={action.label}
-              href={action.href}
-              className="holo-card p-5 flex items-center gap-4 group cursor-pointer"
-            >
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: `${action.color}15`, border: `1px solid ${action.color}30` }}
-              >
-                <Icon className="w-5 h-5" style={{ color: action.color }} />
-              </div>
-              <span
-                className="font-bold text-sm group-hover:text-yellow-300 transition-colors"
-                style={{ color: "var(--text-primary)", fontFamily: "'Rajdhani', sans-serif", letterSpacing: "0.04em" }}
-              >
-                {action.label}
-              </span>
-              <span className="ml-auto text-lg" style={{ color: action.color, opacity: 0.6 }}>+</span>
-            </Link>
-          );
-        })}
-      </div>
+      <style jsx global>{`
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 }

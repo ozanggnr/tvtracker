@@ -37,7 +37,19 @@ export async function GET() {
     const recentItems = await prisma.trackedItem.findMany({
       where: { userId },
       orderBy: { updatedAt: "desc" },
-      take: 6,
+      take: 12,
+    });
+
+    const continueWatching = await prisma.trackedItem.findMany({
+      where: { userId, itemType: "TV_SERIES", status: "WATCHING" },
+      orderBy: { updatedAt: "desc" },
+      take: 10,
+    });
+
+    const startWatching = await prisma.trackedItem.findMany({
+      where: { userId, itemType: "TV_SERIES", status: "PLAN_TO_WATCH" },
+      orderBy: { createdAt: "desc" },
+      take: 10,
     });
 
     return NextResponse.json({
@@ -52,6 +64,8 @@ export async function GET() {
         avgRating: ratingResult._avg.rating,
       },
       recentItems,
+      continueWatching,
+      startWatching,
     });
   } catch (error) {
     console.error("Dashboard error:", error);
