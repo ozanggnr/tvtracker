@@ -40,7 +40,6 @@ export default function ProfilePage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState("");
 
-  const [traktUsername, setTraktUsername] = useState("");
   const [importingTrakt, setImportingTrakt] = useState(false);
   const [traktMessage, setTraktMessage] = useState("");
   const [traktError, setTraktError] = useState("");
@@ -55,6 +54,18 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
+    // Check URL for Trakt OAuth result
+    const params = new URLSearchParams(window.location.search);
+    const successCount = params.get("traktSuccess");
+    const err = params.get("traktError");
+    if (successCount) {
+      setTraktMessage(`Successfully imported ${successCount} watched items from Trakt!`);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (err) {
+      setTraktError(err);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     Promise.all([
       fetch("/api/profile").then(r => r.json()),
       fetch("/api/dashboard").then(r => r.json()),
@@ -93,33 +104,9 @@ export default function ProfilePage() {
     }
   };
 
-  const handleTraktImport = async () => {
-    if (!traktUsername.trim()) return;
+  const handleTraktConnect = () => {
     setImportingTrakt(true);
-    setTraktError("");
-    setTraktMessage("");
-    
-    try {
-      const res = await fetch("/api/import/trakt", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: traktUsername.trim() }),
-      });
-      
-      const data = await res.json();
-      
-      if (!res.ok) {
-        setTraktError(data.error || "Failed to import from Trakt");
-      } else {
-        setTraktMessage(data.message);
-        setTraktUsername("");
-        // Optionally reload stats here
-      }
-    } catch {
-      setTraktError("Network error while contacting server");
-    } finally {
-      setImportingTrakt(false);
-    }
+    window.location.href = "/api/auth/trakt/login";
   };
 
   if (loading) {
@@ -396,23 +383,15 @@ export default function ProfilePage() {
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="text"
-                className="sci-fi-input flex-1"
-                placeholder="Trakt Username"
-                value={traktUsername}
-                onChange={(e) => setTraktUsername(e.target.value)}
-                disabled={importingTrakt}
-              />
+            <div className="mt-2">
               <button
-                onClick={handleTraktImport}
-                disabled={importingTrakt || !traktUsername.trim()}
-                className="btn-secondary whitespace-nowrap flex items-center gap-2"
+                onClick={handleTraktConnect}
+                disabled={importingTrakt}
+                className="btn-secondary w-full flex items-center justify-center gap-2"
                 style={{ background: "rgba(0,212,255,0.1)", borderColor: "rgba(0,212,255,0.3)", color: "var(--hologram-teal)" }}
               >
                 {importingTrakt ? <Loader2 className="w-4 h-4 animate-spin" /> : <DownloadCloud className="w-4 h-4" />}
-                Import
+                Connect Trakt.tv & Import
               </button>
             </div>
           </div>
