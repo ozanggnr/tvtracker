@@ -15,11 +15,10 @@ interface DashboardData {
     watching: number;
     planToWatch: number;
     favorites: number;
-    avgRating: number | null;
-  };
+  series: TrackedItem[];
+  movies: TrackedItem[];
+  books: TrackedItem[];
   recentItems: TrackedItem[];
-  continueWatching: TrackedItem[];
-  startWatching: TrackedItem[];
 }
 
 const STAT_CARDS = [
@@ -212,56 +211,61 @@ export default function DashboardPage() {
         })}
       </div>
 
-      {/* Continue Watching */}
-      {data?.continueWatching && data.continueWatching.length > 0 && (
+      {/* TV Series */}
+      {data?.series && data.series.length > 0 && (
         <div className="mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-lg font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: "var(--text-primary)" }}>
-              Continue Watching
-            </h2>
-            <span className="text-lg">&gt;</span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: "var(--text-primary)" }}>
+                TV Series
+              </h2>
+              <span className="text-lg">&gt;</span>
+            </div>
+            <Link href="/series" className="text-xs text-[var(--gold)] hover:underline">View All</Link>
           </div>
           
           <div className="flex overflow-x-auto pb-4 gap-4 scrollbar-hide" style={{ scrollSnapType: "x mandatory" }}>
-            {data.continueWatching.map((item) => (
-              <div key={item.id} className="relative shrink-0 w-[280px] sm:w-[320px] group cursor-pointer" style={{ scrollSnapAlign: "start" }}>
-                <Link href={`/item/${item.id}`} className="block relative aspect-video rounded-xl overflow-hidden mb-2" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
+            {data.series.map((item) => (
+              <div key={item.id} className="relative shrink-0 w-[240px] sm:w-[280px] group" style={{ scrollSnapAlign: "start" }}>
+                <div className="block relative aspect-video rounded-xl overflow-hidden mb-2" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
                   <Image
                     src={item.posterUrl || PLACEHOLDER(item.title)}
                     alt={item.title}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    sizes="320px"
+                    sizes="280px"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.9)] via-transparent to-transparent" />
                   
-                  {/* Progress bar overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-[rgba(255,255,255,0.2)]">
-                    <div 
-                      className="h-full bg-[var(--gold)]" 
-                      style={{ width: `${Math.min(100, Math.max(5, ((item.currentEpisode || 1) / Math.max(item.totalEpisodes || 10, 1)) * 100))}%` }} 
-                    />
-                  </div>
+                  {item.status === "WATCHING" && (
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-[rgba(255,255,255,0.2)]">
+                      <div 
+                        className="h-full bg-[var(--gold)]" 
+                        style={{ width: `${Math.min(100, Math.max(5, ((item.currentEpisode || 1) / Math.max(item.totalEpisodes || 10, 1)) * 100))}%` }} 
+                      />
+                    </div>
+                  )}
 
                   <div className="absolute bottom-3 right-3 flex items-center gap-1 text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-[rgba(0,0,0,0.6)] border border-[rgba(255,255,255,0.2)]">
-                    <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                    Episode
+                    <div className={`w-1.5 h-1.5 rounded-full ${item.status === 'WATCHING' ? 'bg-red-500' : 'bg-gray-400'}`} />
+                    {item.status === 'WATCHING' ? 'Episode' : 'Start'}
                   </div>
-                </Link>
+                </div>
 
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-bold text-sm truncate w-[220px]" style={{ fontFamily: "'Rajdhani', sans-serif", color: "var(--text-primary)" }}>
+                    <h3 className="font-bold text-sm truncate w-[180px]" style={{ fontFamily: "'Rajdhani', sans-serif", color: "var(--text-primary)" }}>
                       {item.title}
                     </h3>
                     <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                      S{item.currentSeason || 1} • E{item.currentEpisode || 1}
+                      S{item.currentSeason || 1} • E{item.currentEpisode || (item.status === 'PLAN_TO_WATCH' ? 1 : 0)}
                     </p>
                   </div>
                   <button 
                     onClick={(e) => handleAdvance(item.id, e)}
                     disabled={advancingId === item.id}
-                    className="p-2 rounded-full hover:bg-[rgba(255,255,255,0.1)] transition-colors"
+                    title="Mark episode as watched"
+                    className="p-1.5 rounded-full hover:bg-[rgba(255,255,255,0.1)] transition-colors"
                   >
                     {advancingId === item.id ? (
                       <div className="w-4 h-4 rounded-full border-2 border-t-transparent border-[var(--gold)] animate-spin" />
@@ -276,20 +280,23 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Start Watching */}
-      {data?.startWatching && data.startWatching.length > 0 && (
+      {/* Movies */}
+      {data?.movies && data.movies.length > 0 && (
         <div className="mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-lg font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: "var(--text-primary)" }}>
-              Start Watching
-            </h2>
-            <span className="text-lg">&gt;</span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: "var(--text-primary)" }}>
+                Movies
+              </h2>
+              <span className="text-lg">&gt;</span>
+            </div>
+            <Link href="/movies" className="text-xs text-[var(--gold)] hover:underline">View All</Link>
           </div>
           
           <div className="flex overflow-x-auto pb-4 gap-4 scrollbar-hide" style={{ scrollSnapType: "x mandatory" }}>
-            {data.startWatching.map((item) => (
-              <div key={item.id} className="relative shrink-0 w-[140px] sm:w-[160px] group cursor-pointer" style={{ scrollSnapAlign: "start" }}>
-                <Link href={`/item/${item.id}`} className="block relative aspect-[2/3] rounded-xl overflow-hidden mb-2" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
+            {data.movies.map((item) => (
+              <div key={item.id} className="relative shrink-0 w-[140px] sm:w-[160px] group" style={{ scrollSnapAlign: "start" }}>
+                <div className="block relative aspect-[2/3] rounded-xl overflow-hidden mb-2" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
                   <Image
                     src={item.posterUrl || PLACEHOLDER(item.title)}
                     alt={item.title}
@@ -298,7 +305,7 @@ export default function DashboardPage() {
                     sizes="160px"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.9)] via-transparent to-transparent" />
-                </Link>
+                </div>
 
                 <div className="flex justify-between items-start">
                   <div>
@@ -306,18 +313,74 @@ export default function DashboardPage() {
                       {item.title}
                     </h3>
                     <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                      S1 • E1
+                      Movie
                     </p>
                   </div>
                   <button 
                     onClick={(e) => handleAdvance(item.id, e)}
                     disabled={advancingId === item.id}
-                    className="p-1.5 rounded-full hover:bg-[rgba(255,255,255,0.1)] transition-colors"
+                    title="Mark as completed"
+                    className="p-1 rounded-full hover:bg-[rgba(255,255,255,0.1)] transition-colors"
                   >
                     {advancingId === item.id ? (
-                      <div className="w-4 h-4 rounded-full border-2 border-t-transparent border-[var(--gold)] animate-spin" />
+                      <div className="w-3 h-3 rounded-full border-2 border-t-transparent border-[var(--gold)] animate-spin" />
                     ) : (
                       <CheckCircle className="w-4 h-4 text-[var(--gold)] opacity-70 hover:opacity-100" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Books */}
+      {data?.books && data.books.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: "var(--text-primary)" }}>
+                Books
+              </h2>
+              <span className="text-lg">&gt;</span>
+            </div>
+            <Link href="/books" className="text-xs text-[#a040ff] hover:underline">View All</Link>
+          </div>
+          
+          <div className="flex overflow-x-auto pb-4 gap-4 scrollbar-hide" style={{ scrollSnapType: "x mandatory" }}>
+            {data.books.map((item) => (
+              <div key={item.id} className="relative shrink-0 w-[140px] sm:w-[160px] group" style={{ scrollSnapAlign: "start" }}>
+                <div className="block relative aspect-[2/3] rounded-xl overflow-hidden mb-2" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
+                  <Image
+                    src={item.posterUrl || PLACEHOLDER(item.title)}
+                    alt={item.title}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    sizes="160px"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.9)] via-transparent to-transparent" />
+                </div>
+
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-bold text-sm truncate w-[110px]" style={{ fontFamily: "'Rajdhani', sans-serif", color: "var(--text-primary)" }}>
+                      {item.title}
+                    </h3>
+                    <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                      {item.status === "READING" ? "Reading" : "Plan to Read"}
+                    </p>
+                  </div>
+                  <button 
+                    onClick={(e) => handleAdvance(item.id, e)}
+                    disabled={advancingId === item.id}
+                    title="Mark as completed"
+                    className="p-1 rounded-full hover:bg-[rgba(255,255,255,0.1)] transition-colors"
+                  >
+                    {advancingId === item.id ? (
+                      <div className="w-3 h-3 rounded-full border-2 border-t-transparent border-[#a040ff] animate-spin" />
+                    ) : (
+                      <CheckCircle className="w-4 h-4 text-[#a040ff] opacity-70 hover:opacity-100" />
                     )}
                   </button>
                 </div>
@@ -351,10 +414,9 @@ export default function DashboardPage() {
         ) : (
           <div className="flex overflow-x-auto pb-4 gap-4 scrollbar-hide" style={{ scrollSnapType: "x mandatory" }}>
             {data.recentItems.map((item) => (
-              <Link
+              <div
                 key={item.id}
-                href={`/item/${item.id}`}
-                className="relative shrink-0 w-[240px] group cursor-pointer block" 
+                className="relative shrink-0 w-[240px] group" 
                 style={{ scrollSnapAlign: "start" }}
               >
                 <div className="relative aspect-video rounded-xl overflow-hidden mb-2" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
@@ -374,9 +436,9 @@ export default function DashboardPage() {
                   {item.title}
                 </h3>
                 <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                  {item.itemType === "TV_SERIES" ? `S${item.currentSeason || 1} • E${item.currentEpisode || 1}` : "Watched"}
+                  {item.itemType === "TV_SERIES" ? `S${item.currentSeason || 1} • E${item.currentEpisode || 1}` : "Completed"}
                 </p>
-              </Link>
+              </div>
             ))}
           </div>
         )}

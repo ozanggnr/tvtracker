@@ -40,16 +40,22 @@ export async function GET() {
       take: 12,
     });
 
-    const continueWatching = await prisma.trackedItem.findMany({
-      where: { userId, itemType: "TV_SERIES", status: "WATCHING" },
+    const series = await prisma.trackedItem.findMany({
+      where: { userId, itemType: "TV_SERIES", status: { not: "COMPLETED" } },
       orderBy: { updatedAt: "desc" },
-      take: 10,
+      take: 12,
     });
 
-    const startWatching = await prisma.trackedItem.findMany({
-      where: { userId, itemType: "TV_SERIES", status: "PLAN_TO_WATCH" },
-      orderBy: { createdAt: "desc" },
-      take: 10,
+    const movies = await prisma.trackedItem.findMany({
+      where: { userId, itemType: "MOVIE", status: { not: "COMPLETED" } },
+      orderBy: { updatedAt: "desc" },
+      take: 12,
+    });
+
+    const books = await prisma.trackedItem.findMany({
+      where: { userId, itemType: "BOOK", status: { not: "COMPLETED" } },
+      orderBy: { updatedAt: "desc" },
+      take: 12,
     });
 
     return NextResponse.json({
@@ -64,8 +70,9 @@ export async function GET() {
         avgRating: ratingResult._avg.rating,
       },
       recentItems,
-      continueWatching,
-      startWatching,
+      series,
+      movies,
+      books,
     });
   } catch (error) {
     console.error("Dashboard error:", error);

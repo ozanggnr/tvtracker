@@ -10,13 +10,21 @@ export default auth((req) => {
   const isPublicApi = nextUrl.pathname === "/api/register";
 
   // Allow public routes and auth API
-  if (isPublic || isApiAuth || isPublicApi) return NextResponse.next();
+  if (isPublicApi || isApiAuth) return NextResponse.next();
 
   // Redirect authenticated users away from auth pages
   if (isAuthPage) {
     if (session) return NextResponse.redirect(new URL("/dashboard", nextUrl));
     return NextResponse.next();
   }
+
+  // Redirect authenticated users away from landing page
+  if (isPublic && session) {
+    return NextResponse.redirect(new URL("/dashboard", nextUrl));
+  }
+
+  // Allow public root
+  if (isPublic) return NextResponse.next();
 
   // Require auth for all other routes
   if (!session) {
