@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   User, Film, Tv2, BookOpen, Star, Edit2, Save, Loader2,
-  CheckCircle2, Calendar, Trophy,
+  CheckCircle2, Calendar, Trophy, DownloadCloud
 } from "lucide-react";
 import { updateProfileSchema, type UpdateProfileInput } from "@/lib/validations";
 import { formatDate } from "@/lib/utils";
@@ -39,6 +39,11 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState("");
+
+  const [traktUsername, setTraktUsername] = useState("");
+  const [importingTrakt, setImportingTrakt] = useState(false);
+  const [traktMessage, setTraktMessage] = useState("");
+  const [traktError, setTraktError] = useState("");
 
   const {
     register,
@@ -85,6 +90,35 @@ export default function ProfilePage() {
       setSaveError("Network error");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTraktImport = async () => {
+    if (!traktUsername.trim()) return;
+    setImportingTrakt(true);
+    setTraktError("");
+    setTraktMessage("");
+    
+    try {
+      const res = await fetch("/api/import/trakt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: traktUsername.trim() }),
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setTraktError(data.error || "Failed to import from Trakt");
+      } else {
+        setTraktMessage(data.message);
+        setTraktUsername("");
+        // Optionally reload stats here
+      }
+    } catch {
+      setTraktError("Network error while contacting server");
+    } finally {
+      setImportingTrakt(false);
     }
   };
 
@@ -333,6 +367,54 @@ export default function ProfilePage() {
                 </div>
               )}
             </form>
+          </div>
+
+          {/* Trakt Import */}
+          <div className="holo-card p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <DownloadCloud className="w-4 h-4" style={{ color: "var(--hologram-teal)" }} />
+              <h3 className="font-bold text-sm" style={{ fontFamily: "'Orbitron', sans-serif", color: "var(--text-primary)", letterSpacing: "0.05em" }}>
+                IMPORT FROM TRAKT.TV
+              </h3>
+            </div>
+            
+            <p className="text-xs mb-4" style={{ color: "var(--text-secondary)" }}>
+              Instantly sync your watched history from a public Trakt.tv account. Items will be added as "Completed".
+            </p>
+
+            {traktMessage && (
+              <div className="mb-4 px-4 py-3 rounded-lg text-xs flex items-center gap-2"
+                style={{ background: "rgba(0,230,118,0.1)", border: "1px solid rgba(0,230,118,0.3)", color: "#00e676" }}>
+                <CheckCircle2 className="w-4 h-4 shrink-0" /> {traktMessage}
+              </div>
+            )}
+
+            {traktError && (
+              <div className="mb-4 px-4 py-3 rounded-lg text-xs"
+                style={{ background: "rgba(255,64,64,0.1)", border: "1px solid rgba(255,64,64,0.3)", color: "#ff6b6b" }}>
+                {traktError}
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <input
+                type="text"
+                className="sci-fi-input flex-1"
+                placeholder="Trakt Username"
+                value={traktUsername}
+                onChange={(e) => setTraktUsername(e.target.value)}
+                disabled={importingTrakt}
+              />
+              <button
+                onClick={handleTraktImport}
+                disabled={importingTrakt || !traktUsername.trim()}
+                className="btn-secondary whitespace-nowrap flex items-center gap-2"
+                style={{ background: "rgba(0,212,255,0.1)", borderColor: "rgba(0,212,255,0.3)", color: "var(--hologram-teal)" }}
+              >
+                {importingTrakt ? <Loader2 className="w-4 h-4 animate-spin" /> : <DownloadCloud className="w-4 h-4" />}
+                Import
+              </button>
+            </div>
           </div>
         </div>
       </div>
