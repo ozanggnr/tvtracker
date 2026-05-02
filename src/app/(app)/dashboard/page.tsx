@@ -15,6 +15,7 @@ interface DashboardData {
     watching: number;
     planToWatch: number;
     favorites: number;
+  };
   series: TrackedItem[];
   movies: TrackedItem[];
   books: TrackedItem[];
