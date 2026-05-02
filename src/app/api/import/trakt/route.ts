@@ -38,7 +38,15 @@ export async function POST(req: Request) {
     }
 
     if (!moviesRes.ok || !showsRes.ok) {
-      return NextResponse.json({ error: "Failed to fetch data from Trakt" }, { status: 502 });
+      const mStatus = moviesRes.status;
+      const sStatus = showsRes.status;
+      console.error(`Trakt API failed: Movies [${mStatus}], Shows [${sStatus}]`);
+      
+      if (mStatus === 401 || mStatus === 403 || sStatus === 401 || sStatus === 403) {
+         return NextResponse.json({ error: "Trakt profile is private or API Key is invalid." }, { status: 403 });
+      }
+      
+      return NextResponse.json({ error: `Trakt API returned an error (Movies: ${mStatus}, Shows: ${sStatus})` }, { status: 502 });
     }
 
     const movies = await moviesRes.json();
