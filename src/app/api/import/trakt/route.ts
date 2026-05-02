@@ -56,9 +56,10 @@ export async function POST(req: Request) {
 
       await prisma.trackedItem.upsert({
         where: {
-          userId_externalId: {
+          userId_externalId_itemType: {
             userId: session.user.id,
-            externalId: externalId
+            externalId: externalId,
+            itemType: "MOVIE"
           }
         },
         update: {}, // Don't overwrite existing items
@@ -85,9 +86,10 @@ export async function POST(req: Request) {
 
       await prisma.trackedItem.upsert({
         where: {
-          userId_externalId: {
+          userId_externalId_itemType: {
             userId: session.user.id,
-            externalId: externalId
+            externalId: externalId,
+            itemType: "TV_SERIES"
           }
         },
         update: {}, // Don't overwrite existing

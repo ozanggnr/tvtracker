@@ -193,7 +193,7 @@ export default function DashboardPage() {
 
       {/* Recent Activity */}
       <div>
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-yellow-400" />
             <h2
@@ -203,7 +203,7 @@ export default function DashboardPage() {
               RECENT ACTIVITY
             </h2>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Link href="/movies" className="btn-secondary" style={{ padding: "0.4rem 0.875rem", fontSize: "0.7rem" }}>Movies</Link>
             <Link href="/series" className="btn-secondary" style={{ padding: "0.4rem 0.875rem", fontSize: "0.7rem" }}>Series</Link>
             <Link href="/books" className="btn-secondary" style={{ padding: "0.4rem 0.875rem", fontSize: "0.7rem" }}>Books</Link>

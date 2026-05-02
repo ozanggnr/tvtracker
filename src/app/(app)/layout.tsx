@@ -18,7 +18,7 @@ export default async function AppLayout({
       <Starfield />
       <Sidebar />
       <div className="main-content relative z-10">
-        <div className="p-6 md:p-8">{children}</div>
+        <div className="p-6 pt-16 md:p-8">{children}</div>
       </div>
     </div>
   );

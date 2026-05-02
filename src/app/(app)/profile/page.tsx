@@ -396,7 +396,7 @@ export default function ProfilePage() {
               </div>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-3">
               <input
                 type="text"
                 className="sci-fi-input flex-1"
