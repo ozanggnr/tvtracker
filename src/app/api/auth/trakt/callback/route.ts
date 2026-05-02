@@ -6,19 +6,21 @@ export async function GET(req: Request) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.redirect(new URL("/login", req.url));
+      const appUrl = process.env.APP_URL || "http://localhost:3000";
+      return NextResponse.redirect(`${appUrl}/login`);
     }
 
     const { searchParams } = new URL(req.url);
     const code = searchParams.get("code");
     
+    const appUrl = process.env.APP_URL || "http://localhost:3000";
+    
     if (!code) {
-      return NextResponse.redirect(new URL("/profile?traktError=No+authorization+code+received", req.url));
+      return NextResponse.redirect(`${appUrl}/profile?traktError=No+authorization+code+received`);
     }
 
     const clientId = process.env.TRAKT_CLIENT_ID;
     const clientSecret = process.env.TRAKT_CLIENT_SECRET;
-    const appUrl = process.env.APP_URL || "http://localhost:3000";
     const redirectUri = `${appUrl}/api/auth/trakt/callback`;
 
     // 1. Exchange code for access token
@@ -36,7 +38,7 @@ export async function GET(req: Request) {
 
     if (!tokenRes.ok) {
       console.error("Token exchange failed", await tokenRes.text());
-      return NextResponse.redirect(new URL("/profile?traktError=Failed+to+authenticate+with+Trakt", req.url));
+      return NextResponse.redirect(`${appUrl}/profile?traktError=Failed+to+authenticate+with+Trakt`);
     }
 
     const tokenData = await tokenRes.json();
@@ -57,7 +59,7 @@ export async function GET(req: Request) {
 
     if (!moviesRes.ok || !showsRes.ok) {
       console.error("Failed to fetch synced data");
-      return NextResponse.redirect(new URL("/profile?traktError=Failed+to+sync+watched+history", req.url));
+      return NextResponse.redirect(`${appUrl}/profile?traktError=Failed+to+sync+watched+history`);
     }
 
     const movies = await moviesRes.json();
@@ -124,10 +126,11 @@ export async function GET(req: Request) {
     }
 
     // Redirect back to profile with success
-    return NextResponse.redirect(new URL(`/profile?traktSuccess=${importedCount}`, req.url));
+    return NextResponse.redirect(`${appUrl}/profile?traktSuccess=${importedCount}`);
 
   } catch (error) {
     console.error("Trakt OAuth error:", error);
-    return NextResponse.redirect(new URL("/profile?traktError=An+unexpected+error+occurred", req.url));
+    const appUrl = process.env.APP_URL || "http://localhost:3000";
+    return NextResponse.redirect(`${appUrl}/profile?traktError=An+unexpected+error+occurred`);
   }
 }
