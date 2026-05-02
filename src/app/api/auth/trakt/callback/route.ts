@@ -26,7 +26,10 @@ export async function GET(req: Request) {
     // 1. Exchange code for access token
     const tokenRes = await fetch("https://api.trakt.tv/oauth/token", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "User-Agent": "HolocronTracker/1.0"
+      },
       body: JSON.stringify({
         code,
         client_id: clientId,
@@ -49,7 +52,8 @@ export async function GET(req: Request) {
       "Content-Type": "application/json",
       "trakt-api-version": "2",
       "trakt-api-key": clientId!,
-      "Authorization": `Bearer ${accessToken}`
+      "Authorization": `Bearer ${accessToken}`,
+      "User-Agent": "HolocronTracker/1.0"
     };
 
     const [moviesRes, showsRes] = await Promise.all([
