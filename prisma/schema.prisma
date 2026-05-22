@@ -20,6 +20,13 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Trakt.tv integration
+  traktAccessToken  String?   @db.Text
+  traktRefreshToken String?   @db.Text
+  traktExpiresAt    Int?
+  traktUsername      String?
+  lastTraktSync     DateTime?
+
   accounts     Account[]
   sessions     Session[]
   trackedItems TrackedItem[]

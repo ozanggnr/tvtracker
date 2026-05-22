@@ -50,8 +50,20 @@ export function TrackerPage({ itemType, title, subtitle, icon, accentColor, sear
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("updatedAt");
   const [sortOrder, setSortOrder] = useState("desc");
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [hasTrakt, setHasTrakt] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const filters = itemType === "BOOK" ? BOOK_FILTERS : MOVIE_TV_FILTERS;
+
+  useEffect(() => {
+    fetch("/api/profile")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.user?.traktUsername || d.user?.lastTraktSync) setHasTrakt(true);
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -62,7 +74,16 @@ export function TrackerPage({ itemType, title, subtitle, icon, accentColor, sear
 
       const res = await fetch(`/api/items?${params}`);
       const data = await res.json();
-      setItems(data.items || []);
+      const fetchedItems = data.items || [];
+      setItems(fetchedItems);
+      
+      if (statusFilter === "ALL" && !searchQuery) {
+        const newCounts: Record<string, number> = { ALL: fetchedItems.length };
+        fetchedItems.forEach((it: TrackedItem) => {
+           newCounts[it.status] = (newCounts[it.status] || 0) + 1;
+        });
+        setCounts(newCounts);
+      }
     } catch {
       setItems([]);
     } finally {
@@ -75,10 +96,15 @@ export function TrackerPage({ itemType, title, subtitle, icon, accentColor, sear
     return () => clearTimeout(timer);
   }, [fetchItems, searchQuery]);
 
+  const handleTraktSync = () => {
+    setSyncing(true);
+    window.location.href = "/api/auth/trakt/login";
+  };
+
   return (
     <div className="max-w-6xl mx-auto animate-fade-in">
       {/* Header */}
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: accentColor }} />
@@ -88,7 +114,7 @@ export function TrackerPage({ itemType, title, subtitle, icon, accentColor, sear
           </div>
           <div className="flex items-center gap-3 mb-1">
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
+              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
               style={{ background: `${accentColor}15`, border: `1px solid ${accentColor}30` }}
             >
               {icon}
@@ -101,17 +127,34 @@ export function TrackerPage({ itemType, title, subtitle, icon, accentColor, sear
             </h1>
           </div>
           <p style={{ color: "var(--text-secondary)" }}>
-            {items.length} item{items.length !== 1 ? "s" : ""} in your archive
+            {counts["ALL"] ?? items.length} item{(counts["ALL"] ?? items.length) !== 1 ? "s" : ""} in your archive
           </p>
         </div>
-        <Link
-          href={searchHref}
-          className="btn-primary flex items-center gap-2"
-          style={{ borderColor: accentColor }}
-        >
-          <Plus className="w-4 h-4" />
-          Add New
-        </Link>
+        <div className="flex items-center gap-3">
+          {hasTrakt && (
+            <button
+              onClick={handleTraktSync}
+              disabled={syncing}
+              className="btn-secondary flex items-center gap-2 whitespace-nowrap"
+              style={{ borderColor: "var(--hologram-teal)", color: "var(--hologram-teal)" }}
+            >
+              {syncing ? (
+                 <div className="w-4 h-4 rounded-full border-2 border-t-transparent border-current animate-spin" />
+              ) : (
+                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              )}
+              Sync Trakt
+            </button>
+          )}
+          <Link
+            href={searchHref}
+            className="btn-primary flex items-center gap-2 whitespace-nowrap"
+            style={{ borderColor: accentColor }}
+          >
+            <Plus className="w-4 h-4" />
+            Add New
+          </Link>
+        </div>
       </div>
 
       {/* Controls */}
@@ -159,7 +202,7 @@ export function TrackerPage({ itemType, title, subtitle, icon, accentColor, sear
             className={`tab-item whitespace-nowrap ${statusFilter === f.value ? "active" : ""}`}
             onClick={() => setStatusFilter(f.value)}
           >
-            {f.label}
+            {f.label} {counts[f.value] !== undefined && <span className="opacity-50 text-xs ml-1">({counts[f.value]})</span>}
           </button>
         ))}
       </div>

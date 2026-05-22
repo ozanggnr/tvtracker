@@ -17,6 +17,8 @@ interface ProfileData {
   image: string | null;
   bio: string | null;
   createdAt: string;
+  traktUsername: string | null;
+  lastTraktSync: string | null;
   _count: { trackedItems: number };
 }
 
@@ -361,7 +363,7 @@ export default function ProfilePage() {
             <div className="flex items-center gap-2 mb-4">
               <DownloadCloud className="w-4 h-4" style={{ color: "var(--hologram-teal)" }} />
               <h3 className="font-bold text-sm" style={{ fontFamily: "'Orbitron', sans-serif", color: "var(--text-primary)", letterSpacing: "0.05em" }}>
-                IMPORT FROM TRAKT.TV
+                TRAKT.TV INTEGRATION
               </h3>
             </div>
             
@@ -383,17 +385,56 @@ export default function ProfilePage() {
               </div>
             )}
 
-            <div className="mt-2">
-              <button
-                onClick={handleTraktConnect}
-                disabled={importingTrakt}
-                className="btn-secondary w-full flex items-center justify-center gap-2"
-                style={{ background: "rgba(0,212,255,0.1)", borderColor: "rgba(0,212,255,0.3)", color: "var(--hologram-teal)" }}
-              >
-                {importingTrakt ? <Loader2 className="w-4 h-4 animate-spin" /> : <DownloadCloud className="w-4 h-4" />}
-                Connect Trakt.tv & Import
-              </button>
-            </div>
+            {profile?.traktUsername ? (
+              <div className="mt-2 space-y-4">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-[rgba(0,212,255,0.05)] border border-[rgba(0,212,255,0.2)]">
+                  <div>
+                    <p className="text-xs font-bold text-[var(--text-primary)]">Connected as {profile.traktUsername}</p>
+                    {profile.lastTraktSync && (
+                      <p className="text-[0.65rem] text-[var(--text-secondary)]">
+                        Last sync: {new Date(profile.lastTraktSync).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                  <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#00e676]" />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleTraktConnect}
+                    disabled={importingTrakt}
+                    className="btn-primary flex-1 flex items-center justify-center gap-2"
+                    style={{ padding: "0.6rem 1rem", fontSize: "0.75rem" }}
+                  >
+                    {importingTrakt ? <Loader2 className="w-4 h-4 animate-spin" /> : <DownloadCloud className="w-4 h-4" />}
+                    Sync Now
+                  </button>
+                  <button
+                    onClick={() => {
+                       if (confirm("Disconnect Trakt account?")) {
+                          // Normally we would call a disconnect endpoint. Assuming it exists or leaving as frontend mock for now.
+                          alert("Disconnect feature not fully implemented in backend.");
+                       }
+                    }}
+                    className="btn-danger flex items-center justify-center"
+                    style={{ padding: "0.6rem 1rem", fontSize: "0.75rem" }}
+                  >
+                    Disconnect
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-2">
+                <button
+                  onClick={handleTraktConnect}
+                  disabled={importingTrakt}
+                  className="btn-secondary w-full flex items-center justify-center gap-2"
+                  style={{ background: "rgba(0,212,255,0.1)", borderColor: "rgba(0,212,255,0.3)", color: "var(--hologram-teal)" }}
+                >
+                  {importingTrakt ? <Loader2 className="w-4 h-4 animate-spin" /> : <DownloadCloud className="w-4 h-4" />}
+                  Connect Trakt.tv & Import
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

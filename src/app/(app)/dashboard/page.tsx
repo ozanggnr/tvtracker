@@ -21,6 +21,10 @@ interface DashboardData {
   movies: TrackedItem[];
   books: TrackedItem[];
   recentItems: TrackedItem[];
+  user?: {
+    traktUsername: string | null;
+    lastTraktSync: string | null;
+  };
 }
 
 const STAT_CARDS = [
@@ -146,6 +150,24 @@ export default function DashboardPage() {
           HOLOCRON DASHBOARD
         </h1>
         <p style={{ color: "var(--text-secondary)" }}>Your personal media archive at a glance</p>
+        
+        {data?.user?.traktUsername && (
+          <div className="mt-4 flex items-center gap-3">
+            <button
+              onClick={() => window.location.href = "/api/auth/trakt/login"}
+              className="btn-secondary flex items-center gap-2"
+              style={{ padding: "0.5rem 1rem", fontSize: "0.75rem", borderColor: "var(--hologram-teal)", color: "var(--hologram-teal)" }}
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              Sync Trakt
+            </button>
+            {data.user.lastTraktSync && (
+              <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                Last sync: {new Date(data.user.lastTraktSync).toLocaleString()}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Average Rating Banner */}
@@ -453,6 +475,13 @@ export default function DashboardPage() {
         .scrollbar-hide {
             -ms-overflow-style: none;
             scrollbar-width: none;
+        }
+        .snap-x {
+            scroll-snap-type: x mandatory;
+            scroll-behavior: smooth;
+        }
+        .snap-start {
+            scroll-snap-align: start;
         }
       `}</style>
     </div>

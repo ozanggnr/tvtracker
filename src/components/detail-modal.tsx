@@ -36,6 +36,7 @@ interface MediaDetail {
   networks?: string[];
   episodeRuntime?: number;
   subtitle?: string;
+  trackedItem?: any;
 }
 
 interface DetailModalProps {
@@ -113,9 +114,17 @@ export function DetailModal({ externalId, previewData, onClose, onAdded }: Detai
         }
         const data = await res.json();
         setDetail(data.detail);
-        // Set default status based on type
-        const type = data.detail.itemType;
-        setStatus(type === "BOOK" ? "PLAN_TO_READ" : "PLAN_TO_WATCH");
+        
+        // If tracked, pre-fill form
+        if (data.detail.trackedItem) {
+          setStatus(data.detail.trackedItem.status);
+          setUserRating(data.detail.trackedItem.rating);
+          setNotes(data.detail.trackedItem.notes || "");
+        } else {
+          // Set default status based on type
+          const type = data.detail.itemType;
+          setStatus(type === "BOOK" ? "PLAN_TO_READ" : "PLAN_TO_WATCH");
+        }
       } catch {
         setError("Network error. Please try again.");
       } finally {
@@ -125,7 +134,7 @@ export function DetailModal({ externalId, previewData, onClose, onAdded }: Detai
     fetchDetail();
   }, [externalId]);
 
-  const handleSave = async () => {
+  const handleSave = async (overrideStatus?: string) => {
     if (!detail) return;
     setSaving(true);
     setSaveError("");
@@ -136,7 +145,7 @@ export function DetailModal({ externalId, previewData, onClose, onAdded }: Detai
         body: JSON.stringify({
           title: detail.title,
           itemType: detail.itemType,
-          status,
+          status: overrideStatus || status,
           overview: detail.overview,
           posterUrl: detail.posterUrl,
           externalId: detail.externalId,
@@ -177,17 +186,15 @@ export function DetailModal({ externalId, previewData, onClose, onAdded }: Detai
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="modal-content animate-fade-in-up relative"
-        style={{ maxWidth: "700px", maxHeight: "90vh" }}
+        className="modal-content animate-fade-in-up relative w-full h-full md:max-w-[700px] md:h-auto md:max-h-[90vh] flex flex-col rounded-none md:rounded-2xl"
       >
         {/* Close */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2 rounded-full transition-all"
-          style={{ background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.1)" }}
+          className="absolute top-4 right-4 z-50 p-2 rounded-full transition-all bg-black/50 hover:bg-black/80 ring-1 ring-white/10"
           aria-label="Close"
         >
-          <X className="w-4 h-4" style={{ color: "var(--text-secondary)" }} />
+          <X className="w-4 h-4 text-white" />
         </button>
 
         {/* Loading state */}
@@ -217,9 +224,10 @@ export function DetailModal({ externalId, previewData, onClose, onAdded }: Detai
         {/* Content */}
         {!loading && detail && (
           <>
-            {/* Backdrop */}
-            {detail.backdropUrl && (
-              <div className="relative h-44 overflow-hidden rounded-t-2xl">
+            <div className="overflow-y-auto flex-1 md:flex-auto">
+              {/* Backdrop */}
+              {detail.backdropUrl && (
+                <div className="relative h-48 md:h-56 overflow-hidden md:rounded-t-2xl shrink-0">
                 <Image
                   src={detail.backdropUrl}
                   alt={detail.title}
@@ -370,9 +378,11 @@ export function DetailModal({ externalId, previewData, onClose, onAdded }: Detai
               {detail.overview && (
                 <div className="mb-5">
                   <p className="text-xs tracking-widest uppercase mb-2" style={{ color: "var(--text-secondary)", fontFamily: "'Orbitron', sans-serif" }}>Synopsis</p>
-                  <p className="text-sm leading-relaxed line-clamp-4" style={{ color: "var(--text-secondary)" }}>
-                    {detail.overview}
-                  </p>
+                  <div className="max-h-32 overflow-y-auto pr-2 scrollbar-hide">
+                    <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                      {detail.overview}
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -382,9 +392,9 @@ export function DetailModal({ externalId, previewData, onClose, onAdded }: Detai
                   <p className="text-xs tracking-widest uppercase mb-3 flex items-center gap-2" style={{ color: "var(--text-secondary)", fontFamily: "'Orbitron', sans-serif" }}>
                     <Users className="w-3 h-3" /> Cast
                   </p>
-                  <div className="flex gap-3 overflow-x-auto pb-1">
+                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x">
                     {detail.cast.map((c) => (
-                      <div key={c.name} className="flex-shrink-0 text-center w-16">
+                      <div key={c.name} className="flex-shrink-0 text-center w-16 snap-start">
                         <div className="w-12 h-12 mx-auto rounded-full overflow-hidden mb-1"
                           style={{ border: `1px solid ${accentColor}30`, background: "rgba(7,13,26,0.8)" }}>
                           {c.profileUrl ? (
@@ -462,26 +472,40 @@ export function DetailModal({ externalId, previewData, onClose, onAdded }: Detai
               </div>
 
               {/* Action buttons */}
-              <div className="flex gap-3">
-                <button onClick={onClose} className="btn-secondary flex-1">
+              <div className="flex flex-col sm:flex-row gap-3">
+                {!detail.trackedItem && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                       setStatus("COMPLETED");
+                       handleSave("COMPLETED");
+                    }}
+                    className="btn-secondary sm:flex-1"
+                    style={{ borderColor: "#00e676", color: "#00e676" }}
+                  >
+                    Mark as Watched
+                  </button>
+                )}
+                <button onClick={onClose} className="btn-secondary sm:flex-1">
                   Cancel
                 </button>
                 <button
-                  onClick={handleSave}
+                  onClick={() => handleSave()}
                   disabled={saving || saved}
-                  className="btn-primary flex-1 flex items-center justify-center gap-2"
+                  className="btn-primary sm:flex-1 flex items-center justify-center gap-2"
                   style={saved ? { background: "linear-gradient(135deg, #00aa44, #00e676)", color: "#000" } : {}}
                 >
                   {saving ? (
                     <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
                   ) : saved ? (
-                    <><Check className="w-4 h-4" /> Added to Archive!</>
+                    <><Check className="w-4 h-4" /> Saved!</>
                   ) : (
-                    <><Plus className="w-4 h-4" /> Add to Holocron</>
+                    <><Plus className="w-4 h-4" /> {detail.trackedItem ? "Update Archive" : "Add to Holocron"}</>
                   )}
                 </button>
               </div>
             </div>
+          </div>
           </>
         )}
       </div>

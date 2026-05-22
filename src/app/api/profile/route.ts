@@ -19,6 +19,8 @@ export async function GET() {
         image: true,
         bio: true,
         createdAt: true,
+        traktUsername: true,
+        lastTraktSync: true,
         _count: {
           select: { trackedItems: true },
         },

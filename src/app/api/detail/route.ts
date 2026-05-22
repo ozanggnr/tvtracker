@@ -26,6 +26,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "ID required" }, { status: 400 });
     }
 
+    const trackedItem = await prisma.trackedItem.findFirst({
+      where: { userId: session.user.id, externalId }
+    });
+
     // ── TMDB Movie ────────────────────────────────────────────────────────────
     if (externalId.startsWith("tmdb_movie_")) {
       const tmdbId = externalId.replace("tmdb_movie_", "");
@@ -76,6 +80,7 @@ export async function GET(request: Request) {
           budget: m.budget,
           revenue: m.revenue,
           imdbId: m.imdb_id,
+          trackedItem,
         },
       });
     }
@@ -124,6 +129,7 @@ export async function GET(request: Request) {
           tagline: s.tagline,
           networks: s.networks?.map((n: { name: string }) => n.name),
           episodeRuntime: s.episode_run_time?.[0],
+          trackedItem,
         },
       });
     }
@@ -168,6 +174,7 @@ export async function GET(request: Request) {
           isbn,
           subtitle: v.subtitle,
           maturityRating: v.maturityRating,
+          trackedItem,
         },
       });
     }
@@ -202,6 +209,7 @@ export async function GET(request: Request) {
           author: authorName,
           genre: b.subjects?.[0],
           genres: b.subjects?.slice(0, 5) || [],
+          trackedItem,
         },
       });
     }

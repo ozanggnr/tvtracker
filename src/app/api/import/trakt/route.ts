@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { fetchTMDBPoster } from "@/lib/trakt";
 
 const TRAKT_API_URL = "https://api.trakt.tv";
 
@@ -58,9 +59,12 @@ export async function POST(req: Request) {
     for (const item of movies) {
       if (!item.movie?.ids?.tmdb) continue;
       
-      const externalId = `tmdb_movie_${item.movie.ids.tmdb}`;
+      const tmdbId = item.movie.ids.tmdb;
+      const externalId = `tmdb_movie_${tmdbId}`;
       const title = item.movie.title;
       const releaseYear = item.movie.year;
+
+      const posterUrl = await fetchTMDBPoster(tmdbId, "MOVIE");
 
       await prisma.trackedItem.upsert({
         where: {
@@ -70,7 +74,10 @@ export async function POST(req: Request) {
             itemType: "MOVIE"
           }
         },
-        update: {}, // Don't overwrite existing items
+        update: {
+          status: "COMPLETED",
+          ...(posterUrl && { posterUrl }),
+        },
         create: {
           userId: session.user.id,
           externalId,
@@ -78,7 +85,7 @@ export async function POST(req: Request) {
           title,
           releaseYear,
           status: "COMPLETED",
-          // We don't have posters from the watched endpoint natively, but the search API/detail page fixes this later
+          posterUrl,
         }
       });
       importedCount++;
@@ -88,9 +95,12 @@ export async function POST(req: Request) {
     for (const item of shows) {
       if (!item.show?.ids?.tmdb) continue;
       
-      const externalId = `tmdb_tv_${item.show.ids.tmdb}`;
+      const tmdbId = item.show.ids.tmdb;
+      const externalId = `tmdb_tv_${tmdbId}`;
       const title = item.show.title;
       const releaseYear = item.show.year;
+
+      const posterUrl = await fetchTMDBPoster(tmdbId, "TV_SERIES");
 
       await prisma.trackedItem.upsert({
         where: {
@@ -100,7 +110,10 @@ export async function POST(req: Request) {
             itemType: "TV_SERIES"
           }
         },
-        update: {}, // Don't overwrite existing
+        update: {
+          status: "COMPLETED",
+          ...(posterUrl && { posterUrl }),
+        },
         create: {
           userId: session.user.id,
           externalId,
@@ -108,6 +121,7 @@ export async function POST(req: Request) {
           title,
           releaseYear,
           status: "COMPLETED",
+          posterUrl,
         }
       });
       importedCount++;
@@ -115,7 +129,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ 
       success: true, 
-      message: `Successfully imported ${importedCount} watched items from Trakt! Note: Posters will load when you view item details.` 
+      message: `Successfully imported ${importedCount} watched items from Trakt! Posters are being enriched.` 
     });
 
   } catch (error) {

@@ -1,40 +1,45 @@
-import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export default auth((req) => {
-  const { nextUrl, auth: session } = req;
+export function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
 
-  const isAuthPage = nextUrl.pathname.startsWith("/login") || nextUrl.pathname.startsWith("/signup");
-  const isApiAuth = nextUrl.pathname.startsWith("/api/auth");
-  const isPublic = nextUrl.pathname === "/";
-  const isPublicApi = nextUrl.pathname === "/api/register";
+  const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/signup");
+  const isApiAuth = pathname.startsWith("/api/auth");
+  const isPublic = pathname === "/";
+  const isPublicApi = pathname === "/api/register";
+
+  // Check for session token (NextAuth JWT)
+  const token =
+    request.cookies.get("authjs.session-token")?.value ||
+    request.cookies.get("__Secure-authjs.session-token")?.value;
 
   // Allow public routes and auth API
   if (isPublicApi || isApiAuth) return NextResponse.next();
 
   // Redirect authenticated users away from auth pages
   if (isAuthPage) {
-    if (session) return NextResponse.redirect(new URL("/dashboard", nextUrl));
+    if (token) return NextResponse.redirect(new URL("/dashboard", request.url));
     return NextResponse.next();
   }
 
   // Redirect authenticated users away from landing page
-  if (isPublic && session) {
-    return NextResponse.redirect(new URL("/dashboard", nextUrl));
+  if (isPublic && token) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   // Allow public root
   if (isPublic) return NextResponse.next();
 
   // Require auth for all other routes
-  if (!session) {
-    const loginUrl = new URL("/login", nextUrl);
-    loginUrl.searchParams.set("callbackUrl", nextUrl.pathname);
+  if (!token) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: [

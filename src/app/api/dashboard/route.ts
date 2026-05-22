@@ -58,7 +58,13 @@ export async function GET() {
       take: 12,
     });
 
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { traktUsername: true, lastTraktSync: true },
+    });
+
     return NextResponse.json({
+      user,
       stats: {
         totalMovies,
         totalSeries,
