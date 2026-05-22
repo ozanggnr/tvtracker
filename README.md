@@ -1,8 +1,8 @@
 # Holocron Tracker — Media Tracking App
 
-**Live:** [https://tvtracker-production.up.railway.app/](https://tvtracker-production.up.railway.app/)
+**Live App:** [https://tvtracker-production.up.railway.app/](https://tvtracker-production.up.railway.app/)
 
-A full-stack media tracking application inspired by [Trakt.tv](https://trakt.tv). Track your movies, TV series, and books in one place with a clean, modern interface.
+A full-stack media tracking application inspired by [Trakt.tv](https://trakt.tv). Track your movies, TV series, and books in one place with a clean, modern interface. 
 
 ## Features
 
@@ -15,119 +15,56 @@ A full-stack media tracking application inspired by [Trakt.tv](https://trakt.tv)
 - **Responsive Design** — Works on desktop, tablet, and mobile with a collapsible sidebar navigation.
 - **User Authentication** — Secure sign-up and login with email/password credentials using NextAuth.js v5.
 
+## Project Structure
+
+The project is built using **Next.js 16 (App Router)** and uses **Prisma** for database interactions.
+
+```text
+src/
+├── app/
+│   ├── (app)/              # Authenticated pages (requires login)
+│   │   ├── dashboard/      # Main dashboard with stats & recent items
+│   │   ├── movies/         # Movie tracker listing
+│   │   ├── series/         # TV series tracker listing
+│   │   ├── books/          # Book tracker listing
+│   │   ├── search/         # Unified search across external APIs
+│   │   └── profile/        # User profile & Trakt connection settings
+│   ├── api/                # Next.js API Route Handlers (Backend)
+│   │   ├── auth/           # NextAuth login/signup & Trakt OAuth callbacks
+│   │   ├── items/          # CRUD operations, tracking toggle, and episode advancement
+│   │   ├── trakt/          # Trakt.tv manual sync endpoint
+│   │   ├── search/         # TMDB + Google Books proxy search
+│   │   ├── detail/         # External item detail fetching logic
+│   │   ├── dashboard/      # Dashboard statistics aggregator
+│   │   └── profile/        # User profile updates
+│   ├── login/              # Login page
+│   └── signup/             # Registration page
+├── components/             # Reusable UI React Components
+│   ├── sidebar.tsx         # Responsive navigation sidebar
+│   ├── tracker-page.tsx    # Shared tracker list view used by Movies/Series/Books
+│   ├── item-card.tsx       # Interactive media card with quick-action toggles
+│   ├── detail-modal.tsx    # Full-screen modal for viewing and adding items
+│   └── ...
+├── lib/                    # Shared Libraries & Utilities
+│   ├── auth.ts             # NextAuth v5 configuration and callbacks
+│   ├── prisma.ts           # Prisma database client singleton
+│   ├── trakt.ts            # Trakt.tv API exchange and sync helpers
+│   └── utils.ts            # Formatting and styling utilities
+└── types/                  # Global TypeScript type definitions
+```
+
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
 | Framework | [Next.js 16](https://nextjs.org/) (App Router) |
 | Language | TypeScript |
-| Database | PostgreSQL (Railway) |
+| Database | PostgreSQL (Hosted on Railway) |
 | ORM | Prisma 7 |
 | Auth | NextAuth.js v5 (JWT strategy) |
 | Styling | Tailwind CSS v4 + custom CSS |
-| Animations | Framer Motion |
-| Icons | Lucide React |
-| APIs | TMDB, Google Books, Open Library, Trakt.tv |
+| APIs | TMDB, Google Books, Trakt.tv |
 | Deployment | Railway (Docker / standalone) |
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- PostgreSQL database
-- API keys for TMDB, and optionally Google Books and Trakt.tv
-
-### Setup
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/ozanggnr/tvtracker.git
-   cd tvtracker
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Copy the environment template and fill in your values:
-   ```bash
-   cp .env.example .env
-   ```
-
-4. Run database migrations:
-   ```bash
-   npx prisma migrate dev
-   ```
-
-5. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-6. Open [http://localhost:3000](http://localhost:3000)
-
-### Environment Variables
-
-See [`.env.example`](.env.example) for all required and optional variables.
-
-| Variable | Required | Description |
-|---|---|---|
-| `DATABASE_URL` | ✅ | PostgreSQL connection string |
-| `NEXTAUTH_SECRET` | ✅ | Random secret for JWT signing |
-| `NEXTAUTH_URL` | ✅ | App URL (e.g., `http://localhost:3000`) |
-| `TMDB_API_KEY` | ✅ | TMDB Read Access Token (Bearer JWT) |
-| `TMDB_V3_KEY` | ✅ | TMDB v3 API key |
-| `GOOGLE_BOOKS_API_KEY` | ❌ | Google Books API key |
-| `TRAKT_CLIENT_ID` | ❌ | Trakt.tv OAuth client ID |
-| `TRAKT_CLIENT_SECRET` | ❌ | Trakt.tv OAuth client secret |
-| `APP_URL` | ❌ | Production URL for OAuth callbacks |
-
-## Project Structure
-
-```
-src/
-├── app/
-│   ├── (app)/              # Authenticated pages
-│   │   ├── dashboard/      # Dashboard with stats & recent items
-│   │   ├── movies/         # Movie tracker
-│   │   ├── series/         # TV series tracker
-│   │   ├── books/          # Book tracker
-│   │   ├── search/         # Multi-source search
-│   │   └── profile/        # User profile & Trakt settings
-│   ├── api/                # API routes
-│   │   ├── auth/           # NextAuth + Trakt OAuth
-│   │   ├── items/          # CRUD + toggle + advance
-│   │   ├── trakt/          # Trakt sync endpoint
-│   │   ├── search/         # TMDB + Google Books search
-│   │   ├── detail/         # External item detail fetching
-│   │   ├── dashboard/      # Dashboard statistics
-│   │   └── profile/        # User profile
-│   ├── login/              # Login page
-│   └── signup/             # Registration page
-├── components/             # React components
-│   ├── sidebar.tsx         # Navigation sidebar (responsive)
-│   ├── tracker-page.tsx    # Shared tracker list view
-│   ├── item-card.tsx       # Media card with quick actions
-│   ├── detail-modal.tsx    # Item detail & add modal
-│   └── ...
-├── lib/                    # Shared utilities
-│   ├── auth.ts             # NextAuth configuration
-│   ├── prisma.ts           # Prisma client singleton
-│   ├── trakt.ts            # Trakt.tv API helpers
-│   └── ...
-└── types/                  # TypeScript type definitions
-```
-
-## Trakt.tv Integration
-
-To enable Trakt.tv sync:
-
-1. Create an app at [trakt.tv/oauth/applications](https://trakt.tv/oauth/applications)
-2. Set the redirect URI to `{YOUR_APP_URL}/api/auth/trakt/callback`
-3. Add `TRAKT_CLIENT_ID` and `TRAKT_CLIENT_SECRET` to your `.env`
-4. Users can connect via Profile → "Connect Trakt.tv"
 
 ## License
 
