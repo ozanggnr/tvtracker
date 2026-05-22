@@ -106,87 +106,82 @@ export async function syncWatchedTrakt(userId: string, accessToken: string) {
     Authorization: `Bearer ${accessToken}`,
   };
 
-  const [moviesRes, showsRes] = await Promise.all([
+  const [moviesRes, showsRes, watchlistMoviesRes, watchlistShowsRes] = await Promise.all([
     fetch(`${TRAKT_API_URL}/sync/watched/movies`, { headers }),
     fetch(`${TRAKT_API_URL}/sync/watched/shows`, { headers }),
+    fetch(`${TRAKT_API_URL}/sync/watchlist/movies`, { headers }),
+    fetch(`${TRAKT_API_URL}/sync/watchlist/shows`, { headers }),
   ]);
 
-  if (!moviesRes.ok || !showsRes.ok) {
+  if (!moviesRes.ok || !showsRes.ok || !watchlistMoviesRes.ok || !watchlistShowsRes.ok) {
     throw new Error("Failed to fetch synced data from Trakt");
   }
 
   const movies = await moviesRes.json();
   const shows = await showsRes.json();
+  const watchlistMovies = await watchlistMoviesRes.json();
+  const watchlistShows = await watchlistShowsRes.json();
+  
   let importedCount = 0;
 
-  for (const item of movies) {
-    if (!item.movie?.ids?.tmdb) continue;
-    
-    const tmdbId = item.movie.ids.tmdb;
-    const externalId = `tmdb_movie_${tmdbId}`;
-    const title = item.movie.title;
-    const releaseYear = item.movie.year;
-    
-    const posterUrl = await fetchTMDBPoster(tmdbId, "MOVIE");
+  // Helper to chunk arrays
+  const chunkArray = <T>(arr: T[], size: number): T[][] => {
+    return Array.from({ length: Math.ceil(arr.length / size) }, (v, i) =>
+      arr.slice(i * size, i * size + size)
+    );
+  };
 
-    await prisma.trackedItem.upsert({
-      where: {
-        userId_externalId_itemType: {
-          userId,
-          externalId,
-          itemType: "MOVIE",
-        },
-      },
-      update: {
-        status: "COMPLETED",
-        ...(posterUrl && { posterUrl }),
-      },
-      create: {
-        userId,
-        externalId,
-        itemType: "MOVIE",
-        title,
-        releaseYear,
-        status: "COMPLETED",
-        posterUrl,
-      },
-    });
-    importedCount++;
-  }
+  // Combine and format items
+  type ProcessItem = { type: "MOVIE" | "TV_SERIES"; id: number; title: string; year: number; status: any };
+  
+  const allItems: ProcessItem[] = [
+    ...movies.filter((i: any) => i.movie?.ids?.tmdb).map((i: any) => ({
+      type: "MOVIE" as const, id: i.movie.ids.tmdb, title: i.movie.title, year: i.movie.year, status: "COMPLETED"
+    })),
+    ...shows.filter((i: any) => i.show?.ids?.tmdb).map((i: any) => ({
+      type: "TV_SERIES" as const, id: i.show.ids.tmdb, title: i.show.title, year: i.show.year, status: "WATCHING"
+    })),
+    ...watchlistMovies.filter((i: any) => i.movie?.ids?.tmdb).map((i: any) => ({
+      type: "MOVIE" as const, id: i.movie.ids.tmdb, title: i.movie.title, year: i.movie.year, status: "PLAN_TO_WATCH"
+    })),
+    ...watchlistShows.filter((i: any) => i.show?.ids?.tmdb).map((i: any) => ({
+      type: "TV_SERIES" as const, id: i.show.ids.tmdb, title: i.show.title, year: i.show.year, status: "PLAN_TO_WATCH"
+    })),
+  ];
 
-  for (const item of shows) {
-    if (!item.show?.ids?.tmdb) continue;
-    
-    const tmdbId = item.show.ids.tmdb;
-    const externalId = `tmdb_tv_${tmdbId}`;
-    const title = item.show.title;
-    const releaseYear = item.show.year;
-    
-    const posterUrl = await fetchTMDBPoster(tmdbId, "TV_SERIES");
+  const chunks = chunkArray(allItems, 15);
 
-    await prisma.trackedItem.upsert({
-      where: {
-        userId_externalId_itemType: {
-          userId,
-          externalId,
-          itemType: "TV_SERIES",
-        },
-      },
-      update: {
-        status: "COMPLETED",
-        ...(posterUrl && { posterUrl }),
-      },
-      create: {
-        userId,
-        externalId,
-        itemType: "TV_SERIES",
-        title,
-        releaseYear,
-        status: "COMPLETED",
-        posterUrl,
-      },
-    });
-    importedCount++;
+  for (const chunk of chunks) {
+    await Promise.all(
+      chunk.map(async (item) => {
+        const externalId = item.type === "MOVIE" ? `tmdb_movie_${item.id}` : `tmdb_tv_${item.id}`;
+        const posterUrl = await fetchTMDBPoster(item.id, item.type);
+
+        await prisma.trackedItem.upsert({
+          where: {
+            userId_externalId_itemType: {
+              userId,
+              externalId,
+              itemType: item.type,
+            },
+          },
+          update: {
+            status: item.status,
+            ...(posterUrl && { posterUrl }),
+          },
+          create: {
+            userId,
+            externalId,
+            itemType: item.type,
+            title: item.title,
+            releaseYear: item.year,
+            status: item.status,
+            posterUrl,
+          },
+        });
+        importedCount++;
+      })
+    );
   }
 
   await prisma.user.update({
