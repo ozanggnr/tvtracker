@@ -55,6 +55,17 @@ export default function ProfilePage() {
     resolver: zodResolver(updateProfileSchema),
   });
 
+  const fetchProfileData = () => {
+    Promise.all([
+      fetch("/api/profile").then(r => r.json()),
+      fetch("/api/dashboard").then(r => r.json()),
+    ]).then(([profileData, dashData]) => {
+      setProfile(profileData.user);
+      setStats(dashData.stats);
+      reset({ name: profileData.user?.name || "", bio: profileData.user?.bio || "" });
+    }).finally(() => setLoading(false));
+  };
+
   useEffect(() => {
     // Check URL for Trakt OAuth result
     const params = new URLSearchParams(window.location.search);
@@ -68,15 +79,9 @@ export default function ProfilePage() {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
 
-    Promise.all([
-      fetch("/api/profile").then(r => r.json()),
-      fetch("/api/dashboard").then(r => r.json()),
-    ]).then(([profileData, dashData]) => {
-      setProfile(profileData.user);
-      setStats(dashData.stats);
-      reset({ name: profileData.user?.name || "", bio: profileData.user?.bio || "" });
-    }).finally(() => setLoading(false));
-  }, [reset]);
+    fetchProfileData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onSubmit = async (data: UpdateProfileInput) => {
     setSaving(true);
@@ -106,9 +111,29 @@ export default function ProfilePage() {
     }
   };
 
-  const handleTraktConnect = () => {
+  const handleTraktConnect = async () => {
     setImportingTrakt(true);
-    window.location.href = "/api/auth/trakt/login";
+    setTraktError("");
+    setTraktMessage("");
+    
+    if (profile?.traktUsername) {
+      try {
+        const res = await fetch("/api/trakt/sync", { method: "POST" });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          setTraktError(data.error || "Failed to sync");
+        } else {
+          setTraktMessage(data.message || "Synced successfully!");
+          fetchProfileData(); // refresh last sync date
+        }
+      } catch (err) {
+        setTraktError("Network error during sync");
+      } finally {
+        setImportingTrakt(false);
+      }
+    } else {
+      window.location.href = "/api/auth/trakt/login";
+    }
   };
 
   if (loading) {

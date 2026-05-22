@@ -111,7 +111,7 @@ function SearchContent() {
       </div>
 
       {/* Type selector */}
-      <div className="flex gap-2 mb-5">
+      <div className="flex flex-wrap gap-2 mb-5">
         {TYPE_TABS.map(tab => {
           const Icon = tab.icon;
           const isActive = mediaType === tab.value;

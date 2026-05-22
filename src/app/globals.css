@@ -253,6 +253,15 @@ body {
   width: 100%;
   transition: all 0.3s ease;
   outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.sci-fi-input::-webkit-search-decoration,
+.sci-fi-input::-webkit-search-cancel-button,
+.sci-fi-input::-webkit-search-results-button,
+.sci-fi-input::-webkit-search-results-decoration {
+  -webkit-appearance: none;
 }
 
 .sci-fi-input:focus {
@@ -262,6 +271,7 @@ body {
 
 .sci-fi-input::placeholder {
   color: var(--text-secondary);
+  opacity: 0.7;
 }
 
 .sci-fi-select {
@@ -586,7 +596,6 @@ body {
 
   .main-content {
     margin-left: 0;
-    padding-top: 4rem;
   }
 
   .items-grid {

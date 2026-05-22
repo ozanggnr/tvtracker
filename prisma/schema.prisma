@@ -98,6 +98,7 @@ model TrackedItem {
   title       String
   overview    String?    @db.Text
   posterUrl   String?
+  backdropUrl String?
   externalId  String?
   rating      Float?
   notes       String?    @db.Text

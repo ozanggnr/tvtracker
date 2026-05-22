@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Film, Tv2, BookOpen, Star, Eye, CheckCircle, Heart, TrendingUp, Clock } from "lucide-react";
 import type { TrackedItem } from "@prisma/client";
 import { getStatusLabel, getStatusColor } from "@/lib/utils";
+import { ItemCard } from "@/components/item-card";
 
 interface DashboardData {
   stats: {
@@ -235,179 +236,84 @@ export default function DashboardPage() {
         })}
       </div>
 
-      {/* TV Series */}
-      {data?.series && data.series.length > 0 && (
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: "var(--text-primary)" }}>
-                TV Series
-              </h2>
-              <span className="text-lg">&gt;</span>
-            </div>
-            <Link href="/series" className="text-xs text-[var(--gold)] hover:underline">View All</Link>
-          </div>
-          
-          <div className="flex overflow-x-auto pb-4 gap-4 scrollbar-hide" style={{ scrollSnapType: "x mandatory" }}>
-            {data.series.map((item) => (
-              <div key={item.id} className="relative shrink-0 w-[240px] sm:w-[280px] group" style={{ scrollSnapAlign: "start" }}>
-                <div className="block relative aspect-video rounded-xl overflow-hidden mb-2" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
-                  <Image
-                    src={item.posterUrl || PLACEHOLDER(item.title)}
-                    alt={item.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    sizes="280px"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.9)] via-transparent to-transparent" />
-                  
-                  {item.status === "WATCHING" && (
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-[rgba(255,255,255,0.2)]">
-                      <div 
-                        className="h-full bg-[var(--gold)]" 
-                        style={{ width: `${Math.min(100, Math.max(5, ((item.currentEpisode || 1) / Math.max(item.totalEpisodes || 10, 1)) * 100))}%` }} 
-                      />
-                    </div>
-                  )}
+      {/* Continue Watching (TV Series & Movies in Progress) */}
+      {(() => {
+        const watchingItems = [...(data?.series || []), ...(data?.movies || [])].filter(
+          (i) => i.status === "WATCHING"
+        );
+        if (watchingItems.length === 0) return null;
 
-                  <div className="absolute bottom-3 right-3 flex items-center gap-1 text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-[rgba(0,0,0,0.6)] border border-[rgba(255,255,255,0.2)]">
-                    <div className={`w-1.5 h-1.5 rounded-full ${item.status === 'WATCHING' ? 'bg-red-500' : 'bg-gray-400'}`} />
-                    {item.status === 'WATCHING' ? 'Episode' : 'Start'}
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-bold text-sm truncate w-[180px]" style={{ fontFamily: "'Rajdhani', sans-serif", color: "var(--text-primary)" }}>
-                      {item.title}
-                    </h3>
-                    <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                      S{item.currentSeason || 1} • E{item.currentEpisode || (item.status === 'PLAN_TO_WATCH' ? 1 : 0)}
-                    </p>
-                  </div>
-                  <button 
-                    onClick={(e) => handleAdvance(item.id, e)}
-                    disabled={advancingId === item.id}
-                    title="Mark episode as watched"
-                    className="p-1.5 rounded-full hover:bg-[rgba(255,255,255,0.1)] transition-colors"
-                  >
-                    {advancingId === item.id ? (
-                      <div className="w-4 h-4 rounded-full border-2 border-t-transparent border-[var(--gold)] animate-spin" />
-                    ) : (
-                      <CheckCircle className="w-5 h-5 text-[var(--gold)] opacity-70 hover:opacity-100" />
-                    )}
-                  </button>
-                </div>
+        return (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-4 h-4 rounded-full border border-white/20 flex items-center justify-center">
+                <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Movies */}
-      {data?.movies && data.movies.length > 0 && (
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: "var(--text-primary)" }}>
-                Movies
+              <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+                Continue Watching
               </h2>
-              <span className="text-lg">&gt;</span>
+              <span className="text-lg text-white/50">&gt;</span>
             </div>
-            <Link href="/movies" className="text-xs text-[var(--gold)] hover:underline">View All</Link>
-          </div>
-          
-          <div className="flex overflow-x-auto pb-4 gap-4 scrollbar-hide" style={{ scrollSnapType: "x mandatory" }}>
-            {data.movies.map((item) => (
-              <div key={item.id} className="relative shrink-0 w-[140px] sm:w-[160px] group" style={{ scrollSnapAlign: "start" }}>
-                <div className="block relative aspect-[2/3] rounded-xl overflow-hidden mb-2" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
-                  <Image
-                    src={item.posterUrl || PLACEHOLDER(item.title)}
-                    alt={item.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    sizes="160px"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.9)] via-transparent to-transparent" />
+            
+            <div className="flex overflow-x-auto pb-4 gap-4 scrollbar-hide" style={{ scrollSnapType: "x mandatory" }}>
+              {watchingItems.map((item) => (
+                <div key={item.id} className="shrink-0" style={{ scrollSnapAlign: "start" }}>
+                  <ItemCard item={item} variant="landscape" onUpdate={fetchDashboard} />
                 </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-bold text-sm truncate w-[110px]" style={{ fontFamily: "'Rajdhani', sans-serif", color: "var(--text-primary)" }}>
-                      {item.title}
-                    </h3>
-                    <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                      Movie
-                    </p>
-                  </div>
-                  <button 
-                    onClick={(e) => handleAdvance(item.id, e)}
-                    disabled={advancingId === item.id}
-                    title="Mark as completed"
-                    className="p-1 rounded-full hover:bg-[rgba(255,255,255,0.1)] transition-colors"
-                  >
-                    {advancingId === item.id ? (
-                      <div className="w-3 h-3 rounded-full border-2 border-t-transparent border-[var(--gold)] animate-spin" />
-                    ) : (
-                      <CheckCircle className="w-4 h-4 text-[var(--gold)] opacity-70 hover:opacity-100" />
-                    )}
-                  </button>
-                </div>
+      {/* Start Watching (Plan to Watch TV Series & Movies) */}
+      {(() => {
+        const planToWatchItems = [...(data?.series || []), ...(data?.movies || [])].filter(
+          (i) => i.status === "PLAN_TO_WATCH" || i.status === "FAVORITE"
+        );
+        if (planToWatchItems.length === 0) return null;
+
+        return (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-4 h-4 rounded-full border border-white/20 flex items-center justify-center">
+                <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
               </div>
-            ))}
+              <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+                Start Watching
+              </h2>
+              <span className="text-lg text-white/50">&gt;</span>
+            </div>
+            
+            <div className="flex overflow-x-auto pb-4 gap-4 scrollbar-hide" style={{ scrollSnapType: "x mandatory" }}>
+              {planToWatchItems.map((item) => (
+                <div key={item.id} className="shrink-0" style={{ scrollSnapAlign: "start" }}>
+                  <ItemCard item={item} variant="portrait" onUpdate={fetchDashboard} />
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Books */}
       {data?.books && data.books.length > 0 && (
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: "var(--text-primary)" }}>
-                Books
+              <BookOpen className="w-4 h-4 text-[#a040ff]" />
+              <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+                Your Library
               </h2>
-              <span className="text-lg">&gt;</span>
+              <span className="text-lg text-white/50">&gt;</span>
             </div>
             <Link href="/books" className="text-xs text-[#a040ff] hover:underline">View All</Link>
           </div>
           
           <div className="flex overflow-x-auto pb-4 gap-4 scrollbar-hide" style={{ scrollSnapType: "x mandatory" }}>
             {data.books.map((item) => (
-              <div key={item.id} className="relative shrink-0 w-[140px] sm:w-[160px] group" style={{ scrollSnapAlign: "start" }}>
-                <div className="block relative aspect-[2/3] rounded-xl overflow-hidden mb-2" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
-                  <Image
-                    src={item.posterUrl || PLACEHOLDER(item.title)}
-                    alt={item.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    sizes="160px"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.9)] via-transparent to-transparent" />
-                </div>
-
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-bold text-sm truncate w-[110px]" style={{ fontFamily: "'Rajdhani', sans-serif", color: "var(--text-primary)" }}>
-                      {item.title}
-                    </h3>
-                    <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                      {item.status === "READING" ? "Reading" : "Plan to Read"}
-                    </p>
-                  </div>
-                  <button 
-                    onClick={(e) => handleAdvance(item.id, e)}
-                    disabled={advancingId === item.id}
-                    title="Mark as completed"
-                    className="p-1 rounded-full hover:bg-[rgba(255,255,255,0.1)] transition-colors"
-                  >
-                    {advancingId === item.id ? (
-                      <div className="w-3 h-3 rounded-full border-2 border-t-transparent border-[#a040ff] animate-spin" />
-                    ) : (
-                      <CheckCircle className="w-4 h-4 text-[#a040ff] opacity-70 hover:opacity-100" />
-                    )}
-                  </button>
-                </div>
+              <div key={item.id} className="shrink-0" style={{ scrollSnapAlign: "start" }}>
+                <ItemCard item={item} variant="portrait" onUpdate={fetchDashboard} />
               </div>
             ))}
           </div>
@@ -417,10 +323,11 @@ export default function DashboardPage() {
       {/* History */}
       <div>
         <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-lg font-bold" style={{ fontFamily: "'Orbitron', sans-serif", color: "var(--text-primary)" }}>
-            History
+          <Clock className="w-4 h-4 text-[var(--text-secondary)]" />
+          <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+            Recently Updated
           </h2>
-          <span className="text-lg">&gt;</span>
+          <span className="text-lg text-white/50">&gt;</span>
         </div>
 
         {!data?.recentItems?.length ? (
@@ -438,30 +345,8 @@ export default function DashboardPage() {
         ) : (
           <div className="flex overflow-x-auto pb-4 gap-4 scrollbar-hide" style={{ scrollSnapType: "x mandatory" }}>
             {data.recentItems.map((item) => (
-              <div
-                key={item.id}
-                className="relative shrink-0 w-[240px] group" 
-                style={{ scrollSnapAlign: "start" }}
-              >
-                <div className="relative aspect-video rounded-xl overflow-hidden mb-2" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
-                  <Image
-                    src={item.posterUrl || PLACEHOLDER(item.title)}
-                    alt={item.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    sizes="240px"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.8)] via-transparent to-transparent" />
-                  <div className="absolute bottom-2 left-2 text-[0.65rem] font-bold px-1.5 py-0.5 rounded bg-[rgba(255,255,255,0.9)] text-black">
-                    Today
-                  </div>
-                </div>
-                <h3 className="font-bold text-sm truncate" style={{ fontFamily: "'Rajdhani', sans-serif", color: "var(--text-primary)" }}>
-                  {item.title}
-                </h3>
-                <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                  {item.itemType === "TV_SERIES" ? `S${item.currentSeason || 1} • E${item.currentEpisode || 1}` : "Completed"}
-                </p>
+              <div key={item.id} className="shrink-0" style={{ scrollSnapAlign: "start" }}>
+                <ItemCard item={item} variant="landscape" onUpdate={fetchDashboard} />
               </div>
             ))}
           </div>
@@ -475,13 +360,6 @@ export default function DashboardPage() {
         .scrollbar-hide {
             -ms-overflow-style: none;
             scrollbar-width: none;
-        }
-        .snap-x {
-            scroll-snap-type: x mandatory;
-            scroll-behavior: smooth;
-        }
-        .snap-start {
-            scroll-snap-align: start;
         }
       `}</style>
     </div>

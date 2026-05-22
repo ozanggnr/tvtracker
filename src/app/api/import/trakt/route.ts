@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { fetchTMDBPoster } from "@/lib/trakt";
+import { fetchTMDBImages } from "@/lib/trakt";
 
 const TRAKT_API_URL = "https://api.trakt.tv";
 
@@ -89,7 +89,7 @@ export async function POST(req: Request) {
       await Promise.all(
         chunk.map(async (item) => {
           const externalId = item.type === "MOVIE" ? `tmdb_movie_${item.id}` : `tmdb_tv_${item.id}`;
-          const posterUrl = await fetchTMDBPoster(item.id, item.type);
+          const { posterUrl, backdropUrl } = await fetchTMDBImages(item.id, item.type);
 
           await prisma.trackedItem.upsert({
             where: {
@@ -102,6 +102,7 @@ export async function POST(req: Request) {
             update: {
               status: item.status,
               ...(posterUrl && { posterUrl }),
+              ...(backdropUrl && { backdropUrl }),
             },
             create: {
               userId: session.user.id,
@@ -111,6 +112,7 @@ export async function POST(req: Request) {
               releaseYear: item.year,
               status: item.status,
               posterUrl,
+              backdropUrl,
             },
           });
           importedCount++;

@@ -74,9 +74,9 @@ export async function refreshTraktToken(userId: string) {
   return data;
 }
 
-export async function fetchTMDBPoster(tmdbId: number, type: "MOVIE" | "TV_SERIES") {
+export async function fetchTMDBImages(tmdbId: number, type: "MOVIE" | "TV_SERIES") {
   const apiKey = process.env.TMDB_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) return { posterUrl: null, backdropUrl: null };
 
   const endpoint = type === "MOVIE" ? `/movie/${tmdbId}` : `/tv/${tmdbId}`;
   
@@ -88,12 +88,15 @@ export async function fetchTMDBPoster(tmdbId: number, type: "MOVIE" | "TV_SERIES
       },
     });
 
-    if (!res.ok) return null;
+    if (!res.ok) return { posterUrl: null, backdropUrl: null };
     const data = await res.json();
-    return data.poster_path ? `${TMDB_IMAGE_BASE}${data.poster_path}` : null;
+    return {
+      posterUrl: data.poster_path ? `${TMDB_IMAGE_BASE}${data.poster_path}` : null,
+      backdropUrl: data.backdrop_path ? `https://image.tmdb.org/t/p/original${data.backdrop_path}` : null,
+    };
   } catch (err) {
-    console.error("Error fetching TMDB poster:", err);
-    return null;
+    console.error("Error fetching TMDB images:", err);
+    return { posterUrl: null, backdropUrl: null };
   }
 }
 
@@ -155,7 +158,7 @@ export async function syncWatchedTrakt(userId: string, accessToken: string) {
     await Promise.all(
       chunk.map(async (item) => {
         const externalId = item.type === "MOVIE" ? `tmdb_movie_${item.id}` : `tmdb_tv_${item.id}`;
-        const posterUrl = await fetchTMDBPoster(item.id, item.type);
+        const { posterUrl, backdropUrl } = await fetchTMDBImages(item.id, item.type);
 
         await prisma.trackedItem.upsert({
           where: {
@@ -168,6 +171,7 @@ export async function syncWatchedTrakt(userId: string, accessToken: string) {
           update: {
             status: item.status,
             ...(posterUrl && { posterUrl }),
+            ...(backdropUrl && { backdropUrl }),
           },
           create: {
             userId,
@@ -177,6 +181,7 @@ export async function syncWatchedTrakt(userId: string, accessToken: string) {
             releaseYear: item.year,
             status: item.status,
             posterUrl,
+            backdropUrl,
           },
         });
         importedCount++;

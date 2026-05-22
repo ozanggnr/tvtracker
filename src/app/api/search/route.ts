@@ -107,8 +107,8 @@ async function searchTV(query: string): Promise<ExternalSearchResult[]> {
 async function searchBooks(query: string): Promise<ExternalSearchResult[]> {
   const key = process.env.GOOGLE_BOOKS_API_KEY;
   const url = key
-    ? `${GB_BASE}/volumes?q=${encodeURIComponent(query)}&maxResults=20&key=${key}`
-    : `${GB_BASE}/volumes?q=${encodeURIComponent(query)}&maxResults=20`;
+    ? `${GB_BASE}/volumes?q=${encodeURIComponent(query)}&maxResults=20&orderBy=newest&key=${key}`
+    : `${GB_BASE}/volumes?q=${encodeURIComponent(query)}&maxResults=20&orderBy=newest`;
 
   try {
     const res = await fetch(url, { next: { revalidate: 60 } });

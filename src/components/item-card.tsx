@@ -8,6 +8,7 @@ import { EditItemModal } from "./edit-item-modal";
 
 interface ItemCardProps {
   item: TrackedItem;
+  variant?: "portrait" | "landscape";
   onUpdate: () => void;
 }
 
@@ -21,10 +22,12 @@ const STATUS_COLORS: Record<string, string> = {
   PLAN_TO_READ: "badge-teal",
 };
 
-const PLACEHOLDER_POSTER = (title: string) =>
-  `https://placehold.co/300x450/070d1a/f5c518.png?text=${encodeURIComponent(title.slice(0, 12))}`;
+const PLACEHOLDER_POSTER = (title: string, landscape = false) => {
+  const dimensions = landscape ? "400x225" : "300x450";
+  return `https://placehold.co/${dimensions}/070d1a/f5c518.png?text=${encodeURIComponent(title.slice(0, 12))}`;
+};
 
-export function ItemCard({ item, onUpdate }: ItemCardProps) {
+export function ItemCard({ item, variant = "portrait", onUpdate }: ItemCardProps) {
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [toggling, setToggling] = useState(false);
@@ -87,27 +90,34 @@ export function ItemCard({ item, onUpdate }: ItemCardProps) {
     }
   };
 
+  const isLandscape = variant === "landscape";
+  const imageSrc = isLandscape 
+    ? (item.backdropUrl || item.posterUrl || PLACEHOLDER_POSTER(item.title, true))
+    : (item.posterUrl || PLACEHOLDER_POSTER(item.title, false));
+
   return (
     <>
-      <div className="poster-card group relative animate-fade-in-up flex flex-col h-full bg-transparent border-none">
-        {/* Poster image container */}
-        <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden mb-2 shadow-lg ring-1 ring-[rgba(255,255,255,0.1)] group-hover:ring-[var(--gold)] transition-all duration-300">
+      <div className={`poster-card group relative animate-fade-in-up flex flex-col h-full bg-transparent border-none ${isLandscape ? "w-[260px] sm:w-[300px]" : "w-[140px] sm:w-[160px]"}`}>
+        {/* Image container */}
+        <div className={`relative w-full rounded-xl overflow-hidden mb-2 shadow-lg ring-1 ring-[rgba(255,255,255,0.1)] group-hover:ring-[var(--gold)] transition-all duration-300 ${isLandscape ? "aspect-video" : "aspect-[2/3]"}`}>
           <Image
-            src={item.posterUrl || PLACEHOLDER_POSTER(item.title)}
+            src={imageSrc}
             alt={item.title}
             fill
             className="object-cover transition-transform duration-500 group-hover:scale-105"
-            sizes="(max-width: 768px) 50vw, 200px"
+            sizes={isLandscape ? "300px" : "160px"}
           />
           {/* Top gradient for badges */}
           <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-[rgba(0,0,0,0.8)] to-transparent" />
           
-          {/* Status badge top-left */}
-          <div className="absolute top-2 left-2 z-10">
-             <span className={`badge ${STATUS_COLORS[optimisticStatus] || "badge-gold"} shadow-md`} style={{ fontSize: "0.6rem", padding: "0.15rem 0.4rem" }}>
-               {getStatusLabel(optimisticStatus)}
-             </span>
-          </div>
+          {/* Status badge top-left (hide on landscape to match Trakt closely) */}
+          {!isLandscape && (
+            <div className="absolute top-2 left-2 z-10">
+               <span className={`badge ${STATUS_COLORS[optimisticStatus] || "badge-gold"} shadow-md`} style={{ fontSize: "0.6rem", padding: "0.15rem 0.4rem" }}>
+                 {getStatusLabel(optimisticStatus)}
+               </span>
+            </div>
+          )}
 
           {/* Action buttons on hover */}
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
@@ -128,25 +138,22 @@ export function ItemCard({ item, onUpdate }: ItemCardProps) {
             </button>
           </div>
 
-          {/* Toggle Checkmark - Always visible bottom-right */}
-          <button
-            onClick={handleToggle}
-            className={`absolute bottom-2 right-2 z-30 p-1.5 rounded-full transition-all duration-200 hover:scale-110 ${
-              isCompleted 
-                ? "bg-[var(--gold)] text-black" 
-                : "bg-black/60 text-white/50 hover:text-white hover:bg-black/80 ring-1 ring-white/20"
-            }`}
-            title={isCompleted ? "Mark as uncompleted" : "Mark as completed"}
-          >
-            {toggling ? (
-               <div className="w-4 h-4 rounded-full border-2 border-t-transparent border-current animate-spin" />
-            ) : (
-               <CheckCircle2 className="w-4 h-4" />
-            )}
-          </button>
+          {/* Bottom gradient and progress for Landscape */}
+          {isLandscape && (
+            <div className="absolute bottom-0 left-0 right-0 pt-8 bg-gradient-to-t from-[rgba(0,0,0,0.9)] to-transparent z-10 flex flex-col justify-end">
+              {maxProgress && optimisticProgress !== null && optimisticProgress > 0 && (
+                <div className="w-full h-1 bg-black/50">
+                  <div 
+                    className="h-full bg-[var(--gold)] shadow-[0_0_8px_var(--gold)] transition-all duration-500" 
+                    style={{ width: `${Math.max(2, progressPercent)}%` }} 
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
-          {/* Progress bar overlay at bottom */}
-          {!isCompleted && maxProgress && optimisticProgress !== null && optimisticProgress > 0 && (
+          {/* Progress bar overlay at bottom for Portrait */}
+          {!isLandscape && !isCompleted && maxProgress && optimisticProgress !== null && optimisticProgress > 0 && (
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/50 z-10">
               <div 
                 className="h-full bg-[var(--gold)] shadow-[0_0_8px_var(--gold)] transition-all duration-500" 
@@ -156,25 +163,37 @@ export function ItemCard({ item, onUpdate }: ItemCardProps) {
           )}
         </div>
 
-        {/* Info Area */}
-        <div className="flex flex-col flex-1 min-w-0 px-1">
-          <h3
-            className="text-sm font-bold truncate"
-            style={{ color: "var(--text-primary)", fontFamily: "'Rajdhani', sans-serif", letterSpacing: "0.02em" }}
-            title={item.title}
-          >
-            {item.title}
-          </h3>
-          <div className="flex items-center justify-between mt-0.5">
-            <span className="text-xs text-white/50 truncate">
-              {item.releaseYear || item.itemType.replace("_", " ")}
-            </span>
-            {item.rating && (
-              <span className="text-xs font-bold text-[var(--gold)] flex items-center gap-0.5 whitespace-nowrap">
-                ★ {item.rating.toFixed(1)}
+        {/* Info Area below image */}
+        <div className="flex items-start justify-between px-1">
+          <div className="flex flex-col min-w-0 pr-2">
+            <h3
+              className="text-sm font-bold truncate"
+              style={{ color: "var(--text-primary)", fontFamily: "'Rajdhani', sans-serif", letterSpacing: "0.02em" }}
+              title={item.title}
+            >
+              {item.title}
+            </h3>
+            <div className="flex items-center mt-0.5">
+              <span className="text-xs text-white/50 truncate">
+                {item.itemType === "TV_SERIES" 
+                  ? `S${item.currentSeason || 1} • E${item.currentEpisode || (optimisticStatus === 'PLAN_TO_WATCH' ? 1 : 0)}` 
+                  : (item.releaseYear || item.itemType.replace("_", " "))}
               </span>
-            )}
+            </div>
           </div>
+
+          {/* Toggle Checkmark - Outside image */}
+          <button
+            onClick={handleToggle}
+            className="p-1 rounded-full transition-colors shrink-0 mt-0.5"
+            title={isCompleted ? "Mark as uncompleted" : "Mark as completed"}
+          >
+            {toggling ? (
+               <div className="w-4 h-4 rounded-full border-2 border-t-transparent border-[#a040ff] animate-spin" />
+            ) : (
+               <CheckCircle2 className={`w-5 h-5 ${isCompleted ? 'text-[#a040ff]' : 'text-white/20 hover:text-[#a040ff]'} transition-colors`} />
+            )}
+          </button>
         </div>
       </div>
 
